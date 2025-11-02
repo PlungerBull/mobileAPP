@@ -1,17 +1,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
-import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
+import { AuthService } from '@/services/AuthService'; // 👈 NEW SERVICE IMPORT
 
 export default function ReportScreen() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    // 👈 Now using the decoupled service method
+    const { error } = await AuthService.signOut();
+    
     if (error) {
-      console.error('Error signing out:', error.message);
+      // The service has already handled logging; here we handle UI feedback.
+      // In a scalable app, this would trigger a Toast/Snackbar notification.
+      console.error('Error signing out:', error.message); 
+      // We rely on AuthContext to detect the session change and redirect.
     }
-    // Auth layout will automatically redirect to login
   };
 
   return (

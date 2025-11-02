@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+// 🚫 REMOVED: import { supabase } from '@/lib/supabase';
+import { AuthService } from '@/services/AuthService'; // 👈 NEW SERVICE IMPORT
 
 export default function SignUpScreen() {
   const [firstName, setFirstName] = useState('');
@@ -24,16 +25,8 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
-      },
-    });
+    // 👈 Now using AuthService to handle registration logic
+    const { error } = await AuthService.signUp(firstName, lastName, email, password);
 
     if (error) {
       Alert.alert('Sign Up Failed', error.message);

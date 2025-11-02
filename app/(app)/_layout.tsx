@@ -1,29 +1,26 @@
-import React, { useEffect } from 'react'; // 👈 ADD useEffect
-import { Tabs, useRouter } from 'expo-router'; // 👈 ADD useRouter
+import React, { useEffect } from 'react'; 
+import { Tabs, useRouter } from 'expo-router'; 
 import { Ionicons } from '@expo/vector-icons';
-  import { useAuth } from '@/context/AuthContext'; // 👈 ADD THIS IMPORT
-import { Text } from 'react-native'; // 👈 ADD THIS IMPORT
+import { useAuth } from '@/context/AuthContext'; 
+import { Text } from 'react-native'; 
 
 export default function AppLayout() {
-  const { session, loading } = useAuth(); // 👈 GET AUTH STATE
-  const router = useRouter(); // 👈 GET ROUTER
+  const { session, loading } = useAuth(); 
+  const router = useRouter(); 
 
   useEffect(() => {
     if (loading) {
-      return; // Wait until loading is done
+      return; 
     }
     if (!session) {
-      // If no session, redirect to the login screen
       router.replace('/login');
     }
-  }, [loading, session, router]); // 👈 ADD DEPENDENCIES
+  }, [loading, session, router]); 
 
-  // Show a loading screen while checking for session
   if (loading) {
-    return <Text>Loading...</Text>; // Or a custom loading component
+    return <Text>Loading...</Text>; 
   }
 
-  // Only render the app layout if there is a session
   return (
     <Tabs screenOptions={{ headerShown: true }}>
       <Tabs.Screen
@@ -51,6 +48,13 @@ export default function AppLayout() {
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="briefcase-outline" size={size} color={color} />
           ),
+        }}
+      />
+      {/* 👈 NEW LINE TO EXCLUDE THE MODALS FOLDER FROM THE TABS */}
+      <Tabs.Screen
+        name="(modals)"
+        options={{
+          href: null, // This explicitly tells Expo Router NOT to render a tab item
         }}
       />
     </Tabs>

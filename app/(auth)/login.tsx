@@ -6,13 +6,14 @@ import {
   StyleSheet,
   Alert,
   ScrollView,
-  Pressable, // 👈 We now use Pressable for the custom button
-  KeyboardAvoidingView, // 👈 Add this
-  Platform // 👈 Add this
+  Pressable, // 争 We now use Pressable for the custom button
+  KeyboardAvoidingView, // 争 Add this
+  Platform // 争 Add this
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-import { supabase } from '@/lib/supabase';
+// 🚫 REMOVED: import { supabase } from '@/lib/supabase';
+import { AuthService } from '@/services/AuthService'; // 👈 NEW SERVICE IMPORT
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -22,10 +23,8 @@ export default function LoginScreen() {
   // This Supabase logic remains the same
   const handleLogin = async () => {
     setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // 👈 Now using AuthService to handle login logic
+    const { error } = await AuthService.signInWithPassword(email, password);
 
     if (error) {
       Alert.alert('Login Failed', error.message);
@@ -94,7 +93,7 @@ export default function LoginScreen() {
   );
 }
 
-// 👇 Completely new styles to match your design
+// 燥 Completely new styles to match your design
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,

@@ -1,8 +1,13 @@
+import { AuthProvider } from '@/context/AuthContext'; // 👈 ADD THIS IMPORT
 import { Slot } from 'expo-router';
 import React from 'react';
 
 // This is the Root Layout
-// Its only job is to render the child route
 export default function RootLayout() {
-  return <Slot />;
+  return (
+    // Wrap the entire app with the AuthProvider
+    <AuthProvider>
+      <Slot />
+    </AuthProvider>
+  );
 }

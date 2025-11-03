@@ -1,13 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react'; // 👈 ADDED: useMemo hook
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAccounts, useCategoriesAndGroups, useCurrencies } from '@/hooks/useManagementData'; 
 import { 
-  BankAccount, 
-  Category, 
-  Currency 
-} from '@/types/ManagementTypes'; 
+  AccountRow as BankAccount, // 👈 FIX: Use canonical type aliases from supabase
+  CategoryRow as Category, 
+  CurrencyRow as Currency 
+} from '@/types/supabase'; 
 
 // --------------------------------------------------
 // --- 1. Define Props Interfaces for Type Safety ---
@@ -17,7 +17,7 @@ interface SectionActionProps {
   onPress: () => void;
 }
 
-// Union type for any entity displayed in the section
+// Union type for any entity displayed in the section, using canonical types
 type ManagementEntity = BankAccount | Category | Currency;
 
 interface ManagementSectionProps {
@@ -45,6 +45,32 @@ const ManagementSection = ({
   isError, 
   onActionPress 
 }: ManagementSectionProps) => {
+
+  // New helper function to safely determine the item's key
+  const getItemKey = (item: ManagementEntity, index: number): string => {
+    if ('id' in item) {
+      return item.id;
+    }
+    // Only check for 'code' if it's not a BankAccount or Category
+    // This safely narrows the type down to Currency (which only has 'code')
+    if ('code' in (item as Currency)) { 
+      return (item as Currency).code;
+    }
+    return String(index);
+  };
+  
+  // New helper function to safely determine the item's display name
+  const getItemName = (item: ManagementEntity): string => {
+      if ('name' in item) {
+        return item.name;
+      }
+      if ('code' in (item as Currency)) {
+        return (item as Currency).code;
+      }
+      return '';
+  };
+  
+
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -70,15 +96,16 @@ const ManagementSection = ({
       {!isLoading && !isError && (
         <View style={styles.listArea}>
           {data.map((item, index: number) => (
-            // Unique key generation logic
-            <View key={('id' in item ? item.id : 'code' in item ? item.code : index)} style={styles.listItem}>
+            
+            // ✅ FIXED: Use the helper function to safely calculate the key
+            <View key={getItemKey(item, index)} style={styles.listItem}> 
               
               <Text style={styles.listItemText}>
-                {/* Dynamically display name or code */}
-                {('name' in item && item.name) || ('code' in item && item.code)}
+                {/* ✅ FIXED: Use the helper function to safely get the name */}
+                {getItemName(item)}
                 
-                {/* Currency specific tag */}
-                {('is_main' in item && item.is_main) && (
+                {/* Currency specific tag - Uses proper type narrowing and checks */}
+                {('is_main' in item && 'code' in item && item.is_main) && (
                     <Text style={styles.currencyTag}> Main</Text>
                 )}
                 {/* Category/Grouping Tag (if not a top-level group) */}
@@ -88,10 +115,9 @@ const ManagementSection = ({
               </Text>
 
               <View style={styles.listItemDetails}>
-                {/* 🎯 FIX: Changed item.currency_code to item.currency */}
+                {/* Display balance and currency for accounts only */}
                 {('starting_balance' in item) && (
                   <Text style={{ fontSize: 16 }}>
-                    {/* Assuming currency field is on BankAccount, we use a type check shorthand */}
                     {'currency' in item ? item.currency : ''} {item.starting_balance.toFixed(2)}
                   </Text>
                 )}
@@ -105,7 +131,6 @@ const ManagementSection = ({
   );
 };
 
-
 // ----------------------------
 // --- Main Screen Component ---
 // ----------------------------
@@ -115,28 +140,34 @@ export default function ManagementScreen() {
   const { data: accounts = [], isLoading: loadingAccounts, isError: errorAccounts } = useAccounts();
   const { data: categoriesAndGroups = [], isLoading: loadingCatsAndGroups, isError: errorCatsAndGroups } = useCategoriesAndGroups();
   const { data: currencies = [], isLoading: loadingCurrencies, isError: errorCurrencies } = useCurrencies();
-  const router = useRouter(); // 👈 New import
+  const router = useRouter(); 
 
-  // 👈 FIX: Explicitly type the 'cat' parameter as 'Category'
-  const groups: Category[] = categoriesAndGroups.filter((cat: Category) => cat.parent_id === null);
-  const categories: Category[] = categoriesAndGroups.filter((cat: Category) => cat.parent_id !== null);
+  // ✅ PERFORMANCE OPTIMIZATION: Use useMemo to cache filtered lists.
+  const groups: Category[] = useMemo(
+    () => categoriesAndGroups.filter((cat: Category) => cat.parent_id === null),
+    [categoriesAndGroups]
+  );
+  
+  const categories: Category[] = useMemo(
+    () => categoriesAndGroups.filter((cat: Category) => cat.parent_id !== null),
+    [categoriesAndGroups]
+  );
   
   // Handlers for modal navigation 
   const handleManageAccounts = () => {
-    // 👈 Use router to navigate to the new modal file
     router.push('/manage-accounts'); 
   };
   
   const handleManageGroupings = () => {
-    router.push('/manage-groupings'); // 👈 NEW
+    router.push('/manage-groupings'); 
   };
   
   const handleManageCategories = () => {
-    router.push('/manage-categories'); // 👈 NEW
+    router.push('/manage-categories'); 
   };
   
   const handleManageCurrencies = () => {
-    router.push('/manage-currencies'); // 👈 NEW
+    router.push('/manage-currencies'); 
   };
 
   return (

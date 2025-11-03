@@ -1,17 +1,28 @@
+// services/ManagementRepository.ts
+
 import { supabase } from '@/lib/supabase';
+// ✅ Import all canonical Row/Insert types from the database schema
 import { 
-  ServiceResponse, 
-  BankAccount, 
-  Category,
-  Currency,
-  Transaction // 👈 NOW CORRECTLY IMPORTED
-} from '@/types/ManagementTypes';
+  AccountRow, 
+  CategoryRow, 
+  CurrencyRow, 
+  TransactionRow,
+  NewTransaction as NewTransactionInsert 
+} from '@/types/supabase';
+// ✅ Import argument types and the ServiceResponse utility type
+import { ServiceResponse } from '@/types/ApiArgs';
+
+// Define local aliases for clarity (using canonical types)
+type BankAccount = AccountRow;
+type Category = CategoryRow;
+type Currency = CurrencyRow;
+type Transaction = TransactionRow;
 
 const dbClient = supabase; 
 
 export const ManagementRepository = {
   
-  // --- READ Methods ---
+  // --- READ Methods (Consolidated) ---
 
   /** Fetches all bank accounts (Table: accounts). */
   async getAccounts(): Promise<ServiceResponse<BankAccount[]>> {
@@ -24,7 +35,7 @@ export const ManagementRepository = {
       console.error('ManagementRepository [getAccounts] Error:', error.message);
       return { data: null, error: new Error('Failed to load bank accounts.') };
     }
-    return { data, error: null };
+    return { data: data || [], error: null };
   },
 
   /** Fetches all Categories and Groups from the unified 'categories' table. */
@@ -38,12 +49,12 @@ export const ManagementRepository = {
       console.error('ManagementRepository [getCategoriesAndGroups] Error:', error.message);
       return { data: null, error: new Error('Failed to load categories.') };
     }
-    return { data, error: null };
+    return { data: data || [], error: null };
   },
   
   /** Fetches all currencies (Table: currencies). */
   async getCurrencies(): Promise<ServiceResponse<Currency[]>> {
-    const { data, error } = await dbClient
+    const { data, error } = await dbClient 
       .from('currencies')
       .select('*')
       .returns<Currency[]>();
@@ -52,10 +63,30 @@ export const ManagementRepository = {
         console.error('ManagementRepository [getCurrencies] Error:', error.message);
         return { data: null, error: new Error('Failed to load currencies.') };
     }
-    return { data, error: null };
+    return { data: data || [], error: null };
   },
   
-  // --- CREATE Methods ---
+  /** Fetches the latest N transactions, enriching with joined data. */
+  async getTransactions(limit = 100): Promise<ServiceResponse<Transaction[]>> {
+    const { data, error } = await dbClient
+      .from('transactions')
+      .select(`
+        *,
+        accounts (name, currency),
+        categories (name, parent_id)
+      `)
+      .limit(limit)
+      .order('date', { ascending: false })
+      .returns<Transaction[]>();
+
+    if (error) {
+      console.error('ManagementRepository [getTransactions] Error:', error.message);
+      return { data: null, error: new Error('Failed to load transactions.') };
+    }
+    return { data: data || [], error: null };
+  },
+
+  // --- CREATE Methods (Consolidated) ---
   
   /** Creates a new bank account. */
   async createAccount(name: string, initialBalance: number, currencyCode: string): Promise<ServiceResponse<BankAccount | null>> {
@@ -66,6 +97,7 @@ export const ManagementRepository = {
       return { data: null, error: new Error('User not authenticated.') };
     }
     
+    // Note: The 'type' field is correctly omitted here based on your database screenshots.
     const newAccount = {
         user_id: userId,
         name: name,
@@ -86,6 +118,33 @@ export const ManagementRepository = {
     
     return { data, error: null };
   },
+  
+  /** Inserts a new transaction for the current user. */
+  async createTransaction(transactionData: NewTransactionInsert): Promise<ServiceResponse<Transaction | null>> {
+    const { data: { user: dbUser } } = await dbClient.auth.getUser();
+    const userId = dbUser?.id;
+
+    if (!userId) {
+        return { data: null, error: new Error('User not authenticated.') };
+    }
+
+    const newTransaction = {
+        user_id: userId,
+        ...transactionData, 
+    };
+
+    const { data, error } = await dbClient
+        .from('transactions')
+        .insert(newTransaction)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('ManagementRepository [createTransaction] Error:', error.message);
+        return { data: null, error: new Error('Failed to save new transaction.') };
+    }
+    return { data, error: null };
+  },
 
   /** Creates a new top-level Grouping (maps to a Category with parent_id: null). */
   async createGrouping(name: string): Promise<ServiceResponse<Category | null>> {
@@ -99,6 +158,7 @@ export const ManagementRepository = {
     const newGrouping = {
         user_id: userId,
         name: name,
+        parent_id: null, // Always null for a grouping
     }
     
     const { data, error } = await dbClient
@@ -177,16 +237,15 @@ export const ManagementRepository = {
   
   async getTransactionSummary(period: 'month' | 'week'): Promise<ServiceResponse<{ total: number }>> {
     try {
-        // Placeholder logic using the now correctly defined Transaction type
+        // Placeholder logic using the Transaction type
         const dummyTransactions: Transaction[] = []; 
         
-        const total = dummyTransactions.reduce((sum, t) => sum + t.amount_home, 0); // Using amount_home as per schema
+        const total = dummyTransactions.reduce((sum, t) => sum + t.amount_home, 0); 
         return { data: { total }, error: null };
 
     } catch (e) {
+        console.error('ManagementRepository [getTransactionSummary] Error:', e);
         return { data: null, error: new Error('Failed to compute summary.') };
     }
   }
 };
-
-    

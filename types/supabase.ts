@@ -11,7 +11,6 @@ export interface Database {
             created_at: string;
             user_id: string;
             name: string;
-            type: 'checking' | 'savings' | 'credit_card' | 'investment' | 'loan' | 'cash' | 'other';
             starting_balance: number;
             currency: string;
           };
@@ -60,15 +59,12 @@ export interface Database {
       };
       Views: {};
       Functions: {};
-      Enums: {
-        account_type: 'checking' | 'savings' | 'credit_card' | 'investment' | 'loan' | 'cash' | 'other';
-      };
+      Enums: {};
       CompositeTypes: {};
     };
   }
   
   // Helper types for client-side use
-  export type AccountType = Database['public']['Enums']['account_type'];
   
   export type TransactionRow = Database['public']['Tables']['transactions']['Row'];
   export type NewTransaction = Database['public']['Tables']['transactions']['Insert'];

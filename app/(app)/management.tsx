@@ -1,25 +1,20 @@
-import React, { useMemo } from 'react'; // 👈 ADDED: useMemo hook
+import React from 'react'; // 👈 REMOVED: useMemo is no longer needed
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAccounts, useCategoriesAndGroups, useCurrencies } from '@/hooks/useManagementData'; 
+// ✅ UPDATED: Import the new, granular hooks
+import { useAccounts, useGroups, useCategories, useCurrencies } from '@/hooks/useManagementData'; 
 import { 
-  AccountRow as BankAccount, // 👈 FIX: Use canonical type aliases from supabase
+  AccountRow as BankAccount, 
   CategoryRow as Category, 
   CurrencyRow as Currency 
 } from '@/types/supabase'; 
 
-// --------------------------------------------------
-// --- 1. Define Props Interfaces for Type Safety ---
-// --------------------------------------------------
-
+// ... (SectionActionProps, ManagementEntity, ManagementSectionProps remain unchanged) ...
 interface SectionActionProps {
   onPress: () => void;
 }
-
-// Union type for any entity displayed in the section, using canonical types
 type ManagementEntity = BankAccount | Category | Currency;
-
 interface ManagementSectionProps {
   title: string;
   data: ManagementEntity[]; 
@@ -28,10 +23,7 @@ interface ManagementSectionProps {
   onActionPress: () => void;
 }
 
-// ----------------------------------------------------
-// --- 2. Shared Reusable Components with Type Props---
-// ----------------------------------------------------
-
+// ... (SectionAction and ManagementSection components remain unchanged) ...
 const SectionAction = ({ onPress }: SectionActionProps) => (
   <Pressable onPress={onPress}>
     <Ionicons name="ellipsis-horizontal-circle-outline" size={24} color="#666" />
@@ -46,20 +38,16 @@ const ManagementSection = ({
   onActionPress 
 }: ManagementSectionProps) => {
 
-  // New helper function to safely determine the item's key
   const getItemKey = (item: ManagementEntity, index: number): string => {
     if ('id' in item) {
       return item.id;
     }
-    // Only check for 'code' if it's not a BankAccount or Category
-    // This safely narrows the type down to Currency (which only has 'code')
     if ('code' in (item as Currency)) { 
       return (item as Currency).code;
     }
     return String(index);
   };
   
-  // New helper function to safely determine the item's display name
   const getItemName = (item: ManagementEntity): string => {
       if ('name' in item) {
         return item.name;
@@ -70,7 +58,6 @@ const ManagementSection = ({
       return '';
   };
   
-
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -78,44 +65,33 @@ const ManagementSection = ({
         <SectionAction onPress={onActionPress} />
       </View>
       
-      {/* Loading State */}
       {isLoading && (
         <View style={styles.listArea}>
           <ActivityIndicator size="small" color="#e63946" />
         </View>
       )}
 
-      {/* Error State */}
       {isError && (
         <View style={styles.listArea}>
           <Text style={styles.errorText}>Failed to load {title.toLowerCase()}.</Text>
         </View>
       )}
 
-      {/* Data List (only if not loading/error) */}
       {!isLoading && !isError && (
         <View style={styles.listArea}>
           {data.map((item, index: number) => (
-            
-            // ✅ FIXED: Use the helper function to safely calculate the key
             <View key={getItemKey(item, index)} style={styles.listItem}> 
-              
               <Text style={styles.listItemText}>
-                {/* ✅ FIXED: Use the helper function to safely get the name */}
                 {getItemName(item)}
-                
-                {/* Currency specific tag - Uses proper type narrowing and checks */}
                 {('is_main' in item && 'code' in item && item.is_main) && (
                     <Text style={styles.currencyTag}> Main</Text>
                 )}
-                {/* Category/Grouping Tag (if not a top-level group) */}
                 {('parent_id' in item && item.parent_id) && (
                     <Text style={styles.categoryTag}> Sub-Category</Text>
                 )}
               </Text>
 
               <View style={styles.listItemDetails}>
-                {/* Display balance and currency for accounts only */}
                 {('starting_balance' in item) && (
                   <Text style={{ fontSize: 16 }}>
                     {'currency' in item ? item.currency : ''} {item.starting_balance.toFixed(2)}
@@ -136,39 +112,21 @@ const ManagementSection = ({
 // ----------------------------
 
 export default function ManagementScreen() {
-  // Fetch the data using the decoupled hooks
+  // ✅ UPDATED: Fetch data using the new granular hooks
   const { data: accounts = [], isLoading: loadingAccounts, isError: errorAccounts } = useAccounts();
-  const { data: categoriesAndGroups = [], isLoading: loadingCatsAndGroups, isError: errorCatsAndGroups } = useCategoriesAndGroups();
+  const { data: groups = [], isLoading: loadingGroups, isError: errorGroups } = useGroups();
+  const { data: categories = [], isLoading: loadingCategories, isError: errorCategories } = useCategories();
   const { data: currencies = [], isLoading: loadingCurrencies, isError: errorCurrencies } = useCurrencies();
+  
   const router = useRouter(); 
 
-  // ✅ PERFORMANCE OPTIMIZATION: Use useMemo to cache filtered lists.
-  const groups: Category[] = useMemo(
-    () => categoriesAndGroups.filter((cat: Category) => cat.parent_id === null),
-    [categoriesAndGroups]
-  );
-  
-  const categories: Category[] = useMemo(
-    () => categoriesAndGroups.filter((cat: Category) => cat.parent_id !== null),
-    [categoriesAndGroups]
-  );
-  
-  // Handlers for modal navigation 
-  const handleManageAccounts = () => {
-    router.push('/manage-accounts'); 
-  };
-  
-  const handleManageGroupings = () => {
-    router.push('/manage-groupings'); 
-  };
-  
-  const handleManageCategories = () => {
-    router.push('/manage-categories'); 
-  };
-  
-  const handleManageCurrencies = () => {
-    router.push('/manage-currencies'); 
-  };
+  // 🚫 REMOVED: useMemo blocks are no longer necessary as the hooks fetch filtered data.
+
+  // ... (Modal navigation handlers remain unchanged) ...
+  const handleManageAccounts = () => router.push('/manage-accounts');
+  const handleManageGroupings = () => router.push('/manage-groupings');
+  const handleManageCategories = () => router.push('/manage-categories');
+  const handleManageCurrencies = () => router.push('/manage-currencies');
 
   return (
     <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.container}>
@@ -184,19 +142,19 @@ export default function ManagementScreen() {
       
       <ManagementSection 
         title="GROUPINGS"
-        // Show only top-level categories (groups)
+        // ✅ UPDATED: Use data directly from useGroups
         data={groups as ManagementEntity[]}
-        isLoading={loadingCatsAndGroups} // Use the same loading state for both filtered lists
-        isError={errorCatsAndGroups}
+        isLoading={loadingGroups}
+        isError={errorGroups}
         onActionPress={handleManageGroupings}
       />
 
       <ManagementSection 
         title="CATEGORIES"
-        // Show only sub-categories
+        // ✅ UPDATED: Use data directly from useCategories
         data={categories as ManagementEntity[]}
-        isLoading={loadingCatsAndGroups}
-        isError={errorCatsAndGroups}
+        isLoading={loadingCategories}
+        isError={errorCategories}
         onActionPress={handleManageCategories}
       />
       
@@ -214,6 +172,7 @@ export default function ManagementScreen() {
   );
 }
 
+// ... (Styles remain unchanged) ...
 const styles = StyleSheet.create({
   scrollContainer: {
     flex: 1,

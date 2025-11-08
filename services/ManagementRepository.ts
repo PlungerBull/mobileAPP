@@ -10,7 +10,12 @@ import {
   NewTransaction as NewTransactionInsert 
 } from '@/types/supabase';
 // ✅ Import argument types and the ServiceResponse utility type
-import { ServiceResponse } from '@/types/ApiArgs';
+import { 
+  ServiceResponse,
+  UpdateAccountArgs,
+  UpdateCategoryArgs,
+  UpdateCurrencyArgs
+} from '@/types/ApiArgs';
 
 // Define local aliases for clarity (using canonical types)
 type BankAccount = AccountRow;
@@ -38,11 +43,42 @@ export const ManagementRepository = {
     return { data: data || [], error: null };
   },
 
-  /** Fetches all Categories and Groups from the unified 'categories' table. */
+  /** Fetches only top-level groups. */
+  async getGroups(): Promise<ServiceResponse<Category[]>> {
+    const { data, error } = await dbClient
+      .from('categories')
+      .select('*')
+      .is('parent_id', null) // Filter for top-level groups
+      .returns<Category[]>();
+
+    if (error) {
+      console.error('ManagementRepository [getGroups] Error:', error.message);
+      return { data: null, error: new Error('Failed to load groups.') };
+    }
+    return { data: data || [], error: null };
+  },
+
+  /** Fetches only sub-categories (items with a parent). */
+  async getCategories(): Promise<ServiceResponse<Category[]>> {
+    const { data, error } = await dbClient
+      .from('categories')
+      .select('*')
+      .not('parent_id', 'is', null) // Filter for sub-categories
+      .returns<Category[]>();
+
+    if (error) {
+      console.error('ManagementRepository [getCategories] Error:', error.message);
+      return { data: null, error: new Error('Failed to load categories.') };
+    }
+    return { data: data || [], error: null };
+  },
+
+  /** Fetches all Categories and Groups. */
   async getCategoriesAndGroups(): Promise<ServiceResponse<Category[]>> {
     const { data, error } = await dbClient
       .from('categories')
       .select('*')
+      .order('name', { ascending: true }) // Order them alphabetically
       .returns<Category[]>();
 
     if (error) {
@@ -97,7 +133,6 @@ export const ManagementRepository = {
       return { data: null, error: new Error('User not authenticated.') };
     }
     
-    // Note: The 'type' field is correctly omitted here based on your database screenshots.
     const newAccount = {
         user_id: userId,
         name: name,
@@ -230,6 +265,115 @@ export const ManagementRepository = {
         return { data: null, error: new Error('Failed to create currency.') };
     }
 
+    return { data, error: null };
+  },
+
+  // --- DELETE Methods ---
+
+  /** Deletes an account by its ID. */
+  async deleteAccount(id: string): Promise<ServiceResponse<null>> {
+    const { error } = await dbClient.from('accounts').delete().match({ id });
+    if (error) {
+      console.error('ManagementRepository [deleteAccount] Error:', error.message);
+      return { data: null, error: new Error('Failed to delete account.') };
+    }
+    return { data: null, error: null };
+  },
+
+  /** Deletes a category (or group) by its ID. */
+  async deleteCategory(id: string): Promise<ServiceResponse<null>> {
+    const { error } = await dbClient.from('categories').delete().match({ id });
+    if (error) {
+      console.error('ManagementRepository [deleteCategory] Error:', error.message);
+      return { data: null, error: new Error('Failed to delete category.') };
+    }
+    return { data: null, error: null };
+  },
+
+  /** Deletes a currency by its 3-letter code. */
+  async deleteCurrency(code: string): Promise<ServiceResponse<null>> {
+    const { error } = await dbClient.from('currencies').delete().match({ code });
+    if (error) {
+      console.error('ManagementRepository [deleteCurrency] Error:', error.message);
+      return { data: null, error: new Error('Failed to delete currency.') };
+    }
+    return { data: null, error: null };
+  },
+
+  // --- UPDATE Methods ---
+
+  /** Sets a specific currency as the main one, and un-sets all others. */
+  async setMainCurrency(code: string): Promise<ServiceResponse<null>> {
+    // Step 1: Set all currencies to NOT be main
+    const { error: resetError } = await dbClient
+      .from('currencies')
+      .update({ is_main: false })
+      .eq('is_main', true); // Only update rows that are currently true
+
+    if (resetError) {
+      console.error('ManagementRepository [setMainCurrency Step 1] Error:', resetError.message);
+      return { data: null, error: new Error('Failed to reset main currency.') };
+    }
+
+    // Step 2: Set the new currency as main
+    const { error: setError } = await dbClient
+      .from('currencies')
+      .update({ is_main: true })
+      .match({ code });
+
+    if (setError) {
+      console.error('ManagementRepository [setMainCurrency Step 2] Error:', setError.message);
+      return { data: null, error: new Error('Failed to set new main currency.') };
+    }
+
+    return { data: null, error: null };
+  },
+
+  /** Updates an existing bank account. */
+  async updateAccount({ id, updates }: UpdateAccountArgs): Promise<ServiceResponse<BankAccount | null>> {
+    const { data, error } = await dbClient
+        .from('accounts')
+        .update(updates)
+        .match({ id })
+        .select()
+        .single();
+        
+    if (error) {
+        console.error('ManagementRepository [updateAccount] Error:', error.message);
+        return { data: null, error: new Error('Failed to update account.') };
+    }
+    return { data, error: null };
+  },
+
+  /** Updates an existing category or group. */
+  async updateCategory({ id, updates }: UpdateCategoryArgs): Promise<ServiceResponse<Category | null>> {
+    const { data, error } = await dbClient
+        .from('categories')
+        .update(updates)
+        .match({ id })
+        .select()
+        .single();
+        
+    if (error) {
+        console.error('ManagementRepository [updateCategory] Error:', error.message);
+        return { data: null, error: new Error('Failed to update category.') };
+    }
+    return { data, error: null };
+  },
+
+  /** Updates an existing currency. */
+  async updateCurrency({ code, updates }: UpdateCurrencyArgs): Promise<ServiceResponse<Currency | null>> {
+    const { data, error } = await dbClient
+        .from('currencies')
+        .update(updates)
+        .match({ code })
+        .select()
+        .single();
+        
+    if (error) {
+        console.error('ManagementRepository [updateCurrency] Error:', error.message);
+        return { data: null, error: new Error('Failed to update currency.') };
+    }
     return { data, error: null };
   },
 

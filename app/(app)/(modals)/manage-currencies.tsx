@@ -7,36 +7,79 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useCurrencies, useCreateCurrency } from '@/hooks/useManagementData'; 
+// ✅ UPDATED: Import new hooks
+import { 
+  useCurrencies, 
+  useCreateCurrency,
+  useDeleteCurrency,
+  useSetMainCurrency
+} from '@/hooks/useManagementData'; 
 
-// ✅ Imports from the new component folder
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 import { CurrencyRow } from '@/components/list-items/CurrencyRow';
 
-// --- Main Modal Component ---
 export default function ManageCurrenciesModal() {
   const router = useRouter();
   const { data: currencies = [], isLoading: loadingCurrencies } = useCurrencies();
   const { mutate: createCurrency, isPending: isCreating } = useCreateCurrency();
+  // ✅ NEW: Get delete and setMain mutations
+  const { mutate: deleteCurrency } = useDeleteCurrency();
+  const { mutate: setMainCurrency } = useSetMainCurrency();
 
   const [code, setCode] = useState('');
 
   const handleAddCurrency = () => {
+    // ... (This function remains unchanged)
     if (code.trim().length !== 3) {
       Alert.alert('Error', 'Please enter a 3-letter currency code (e.g., CAD).');
       return;
     }
-    
     createCurrency({ code: code.toUpperCase().trim() }, {
       onSuccess: () => setCode(''),
       onError: (e) => Alert.alert('Creation Failed', e.message),
     });
   };
   
-  // Placeholder Handlers for List Items
-  const handleSetMain = (code: string) => console.log('Set Main', code);
-  const handleEdit = (code: string) => console.log('Edit', code);
-  const handleDelete = (code: string) => console.log('Delete', code);
+  // ✅ UPDATED: Implement placeholder handlers
+  const handleSetMain = (code: string) => {
+    setMainCurrency({ code }, {
+      onError: (e) => Alert.alert('Update Failed', e.message)
+    });
+  };
+  // ✅ UPDATED: This function now navigates to the edit modal
+  const handleEdit = (code: string) => {
+    const currencyToEdit = currencies.find(c => c.code === code);
+    if (currencyToEdit) {
+      router.push({
+        pathname: '/edit-currency',
+        params: { item: JSON.stringify(currencyToEdit) }
+      });
+    }
+  };
+  
+  const handleDelete = (code: string) => {
+    // Prevent deleting the main currency
+    const currency = currencies.find(c => c.code === code);
+    if (currency?.is_main) {
+      Alert.alert('Error', 'Cannot delete your main currency. Please set another currency as main first.');
+      return;
+    }
+
+    Alert.alert(
+      "Delete Currency",
+      `Are you sure you want to delete ${code}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: () => deleteCurrency({ code }, {
+            onError: (e) => Alert.alert('Delete Failed', e.message)
+          })
+        }
+      ]
+    );
+  };
 
   return (
     <View style={modalStyles.safeArea}>
@@ -44,7 +87,7 @@ export default function ManageCurrenciesModal() {
         options={{ 
           title: 'Manage Currencies',
           headerLeft: () => <View />, 
-          headerRight: CloseButton, // ✅ Reusable component
+          headerRight: CloseButton, 
         }} 
       />
       
@@ -56,12 +99,12 @@ export default function ManageCurrenciesModal() {
         ) : (
           <View>
             {currencies.map(c => (
-              <CurrencyRow // ✅ Reusable component
+              <CurrencyRow 
                 key={c.code} 
                 currency={c} 
-                onSetMain={handleSetMain}
+                onSetMain={handleSetMain} // ✅ Wired up
                 onEdit={handleEdit}
-                onDelete={handleDelete}
+                onDelete={handleDelete}  // ✅ Wired up
               />
             ))}
             {currencies.length === 0 && <Text style={modalStyles.emptyText}>No currencies set up yet.</Text>}
@@ -70,8 +113,9 @@ export default function ManageCurrenciesModal() {
         
         <View style={modalStyles.separator} />
 
+        {/* ... (Add New Form remains unchanged) ... */}
         <Text style={modalStyles.addTitle}>Add New Currency</Text>
-        <CustomInput // ✅ Reusable component
+        <CustomInput 
           label="Code"
           placeholder="e.g. CAD"
           value={code}
@@ -79,8 +123,7 @@ export default function ManageCurrenciesModal() {
           autoCapitalize="characters"
           maxLength={3}
         />
-
-        <PrimaryButton // ✅ Reusable component
+        <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
           onPress={handleAddCurrency}
           disabled={isCreating}
@@ -89,4 +132,3 @@ export default function ManageCurrenciesModal() {
     </View>
   );
 }
-// 🚫 All previous styles and local components are REMOVED.

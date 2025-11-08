@@ -34,6 +34,26 @@ export default function ModalsLayout() {
           presentation: 'modal', 
         }} 
       />
+      <Stack.Screen 
+        name="edit-account" 
+        options={{ headerShown: false, presentation: 'modal' }} 
+      />
+       <Stack.Screen 
+        name="edit-category" 
+        options={{ headerShown: false, presentation: 'modal' }} 
+      />
+       <Stack.Screen 
+        name="edit-currency" 
+        options={{ headerShown: false, presentation: 'modal' }} 
+      />
+       {/* ✅ NEW: Add the new transaction modal screen */}
+       <Stack.Screen 
+        name="add-transaction" 
+        options={{ 
+          headerShown: false, 
+          presentation: 'modal', 
+        }} 
+      />
     </Stack>
   );
 }

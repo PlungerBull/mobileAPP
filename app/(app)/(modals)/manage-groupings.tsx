@@ -7,39 +7,62 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useCategoriesAndGroups, useCreateGrouping } from '@/hooks/useManagementData'; 
+// ✅ UPDATED: Import new hooks
+import { useGroups, useCreateGrouping, useDeleteCategory } from '@/hooks/useManagementData'; 
 
-// ✅ Imports from the new component folder
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 import { CategoryRow } from '@/components/list-items/CategoryRow';
 
 
-// --- Main Modal Component ---
 export default function ManageGroupingsModal() {
   const router = useRouter();
-  const { data: categoriesAndGroups = [], isLoading: loadingGroups } = useCategoriesAndGroups();
+  // ✅ UPDATED: Use the new granular hook
+  const { data: groupings = [], isLoading: loadingGroups } = useGroups();
   const { mutate: createGrouping, isPending: isCreating } = useCreateGrouping();
-
-  // Filter out only top-level categories (Groups)
-  const groupings = categoriesAndGroups.filter(cat => cat.parent_id === null);
+  // ✅ NEW: Get the delete mutation (it's the same one for categories and groups)
+  const { mutate: deleteGrouping } = useDeleteCategory();
 
   const [name, setName] = useState('');
 
   const handleAddGrouping = () => {
+    // ... (This function remains unchanged)
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter a valid grouping name.');
       return;
     }
-    
     createGrouping(name.trim(), {
       onSuccess: () => setName(''),
       onError: (e) => Alert.alert('Creation Failed', e.message),
     });
   };
   
-  // Placeholder Handlers for List Items
-  const handleEdit = (id: string) => console.log('Edit', id);
-  const handleDelete = (id: string) => console.log('Delete', id);
+// ✅ UPDATED: This function now navigates to the edit modal
+const handleEdit = (id: string) => {
+  const groupToEdit = groupings.find(g => g.id === id);
+  if (groupToEdit) {
+    router.push({
+      pathname: '/edit-category', // Re-uses the category edit screen
+      params: { item: JSON.stringify(groupToEdit) }
+    });
+  }
+};
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      "Delete Grouping",
+      "Are you sure? This may also affect sub-categories.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: () => deleteGrouping({ id }, {
+            onError: (e) => Alert.alert('Delete Failed', e.message)
+          })
+        }
+      ]
+    );
+  };
 
   return (
     <View style={modalStyles.safeArea}>
@@ -47,7 +70,7 @@ export default function ManageGroupingsModal() {
         options={{ 
           title: 'Manage Groupings',
           headerLeft: () => <View />, 
-          headerRight: CloseButton, // ✅ Reusable component
+          headerRight: CloseButton, 
         }} 
       />
       
@@ -59,11 +82,11 @@ export default function ManageGroupingsModal() {
         ) : (
           <View>
             {groupings.map(group => (
-              <CategoryRow // ✅ Reusable component
+              <CategoryRow 
                 key={group.id} 
                 category={group} 
                 onEdit={handleEdit} 
-                onDelete={handleDelete}
+                onDelete={handleDelete} // ✅ Wired up
               />
             ))}
             {groupings.length === 0 && <Text style={modalStyles.emptyText}>No groupings set up yet.</Text>}
@@ -72,16 +95,16 @@ export default function ManageGroupingsModal() {
         
         <View style={modalStyles.separator} />
 
+        {/* ... (Add New Form remains unchanged) ... */}
         <Text style={modalStyles.addTitle}>Add New</Text>
-        <CustomInput // ✅ Reusable component
+        <CustomInput 
           label="Name"
           placeholder="e.g. Housing"
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
         />
-
-        <PrimaryButton // ✅ Reusable component
+        <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
           onPress={handleAddGrouping}
           disabled={isCreating}
@@ -90,4 +113,3 @@ export default function ManageGroupingsModal() {
     </View>
   );
 }
-// 🚫 All previous styles and local components are REMOVED.

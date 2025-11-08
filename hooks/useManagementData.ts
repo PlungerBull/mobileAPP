@@ -9,7 +9,13 @@ import {
 import { 
     ServiceResponse, 
     CreateAccountArgs, 
-    CreateCategoryArgs 
+    CreateCategoryArgs,
+    DeleteByIdArgs,
+    DeleteByCodeArgs,
+    SetMainCurrencyArgs,
+    UpdateAccountArgs,
+    UpdateCategoryArgs,
+    UpdateCurrencyArgs
 } from '@/types/ApiArgs';
 
 // Define local aliases for clarity
@@ -21,7 +27,6 @@ type NewTransactionInsert = NewTransaction;
 
 // --------------------------------------------------
 // --- 1. Mutation Argument Interfaces (Input Types)---
-// NOTE: These are now typically only argument interfaces or simple local types
 // --------------------------------------------------
 
 interface CreateCurrencyArgs {
@@ -34,10 +39,12 @@ interface CreateCurrencyArgs {
 
 const QUERY_KEYS = {
   ACCOUNTS: 'accounts',
+  GROUPS: 'groups',
+  CATEGORIES: 'categories',
   CATEGORIES_AND_GROUPS: 'categoriesAndGroups', 
   CURRENCIES: 'currencies',
-  TRANSACTIONS: 'transactions', // 👈 NEW KEY
-  TRANSACTION_SUMMARY: 'transactionSummary', // 👈 NEW KEY for reporting
+  TRANSACTIONS: 'transactions',
+  TRANSACTION_SUMMARY: 'transactionSummary',
 };
 
 // --------------------------------------------------
@@ -45,31 +52,48 @@ const QUERY_KEYS = {
 // --------------------------------------------------
 
 export function useAccounts() {
-  // TData is BankAccount[], TError is Error
   return useQuery<BankAccount[], Error>({ 
     queryKey: [QUERY_KEYS.ACCOUNTS],
     queryFn: async () => {
-      // ManagementRepository.getAccounts returns ServiceResponse<BankAccount[]>
       const { data, error } = await ManagementRepository.getAccounts();
-      
-      // 1. Handle Error: If there's an error, THROW it.
       if (error) throw error; 
-      
-      // 2. SUCCESS: Because the Repository now guarantees data is [] (empty array)
-      // or [data] on successful fetch, we can safely return the non-null data.
-      // This cast asserts to TypeScript that `data` is now the clean TData type.
       return data as BankAccount[]; 
     },
   });
 }
 
+/** Hook to fetch only Groups (top-level categories) */
+export function useGroups() {
+  return useQuery<Category[], Error>({
+    queryKey: [QUERY_KEYS.GROUPS],
+    queryFn: async () => {
+      const { data, error } = await ManagementRepository.getGroups();
+      if (error) throw error;
+      return data as Category[]; 
+    },
+  });
+}
+
+/** Hook to fetch only sub-categories */
+export function useCategories() {
+  return useQuery<Category[], Error>({
+    queryKey: [QUERY_KEYS.CATEGORIES],
+    queryFn: async () => {
+      const { data, error } = await ManagementRepository.getCategories();
+      if (error) throw error;
+      return data as Category[];
+    },
+  });
+}
+
+/** Hook to fetch all categories and groups */
 export function useCategoriesAndGroups() {
   return useQuery<Category[], Error>({
     queryKey: [QUERY_KEYS.CATEGORIES_AND_GROUPS],
     queryFn: async () => {
       const { data, error } = await ManagementRepository.getCategoriesAndGroups();
       if (error) throw error;
-      return data as Category[]; // ✅ Ensure only the array is returned
+      return data as Category[];
     },
   });
 }
@@ -80,19 +104,18 @@ export function useCurrencies() {
     queryFn: async () => {
       const { data, error } = await ManagementRepository.getCurrencies();
       if (error) throw error;
-      return data as Currency[]; // ✅ Ensure only the array is returned
+      return data as Currency[]; 
     },
   });
 }
 
-// 👈 NEW: Hook to fetch Transactions
 export function useTransactions() {
   return useQuery<Transaction[], Error>({
       queryKey: [QUERY_KEYS.TRANSACTIONS],
       queryFn: async () => {
           const { data, error } = await ManagementRepository.getTransactions();
           if (error) throw error;
-          return data as Transaction[]; // ✅ Ensure only the array is returned
+          return data as Transaction[]; 
       },
       staleTime: 1000 * 60 * 5,
   });
@@ -105,12 +128,11 @@ export function useTransactions() {
 export function useCreateAccount() {
     const queryClient = useQueryClient();
   
-    // Changed mutation return type to the data itself (BankAccount | null) for cleaner onSuccess/onError handling
     return useMutation<BankAccount | null, Error, CreateAccountArgs>({
         mutationFn: async ({ name, initialBalance, currencyCode }) => {
             const result = await ManagementRepository.createAccount(name, initialBalance, currencyCode);
             if (result.error) throw result.error;
-            return result.data; // Return the successfully created object
+            return result.data; 
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACCOUNTS] }); 
@@ -128,6 +150,7 @@ export function useCreateGrouping() {
             return result.data;
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GROUPS] });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES_AND_GROUPS] });
         },
     });
@@ -143,6 +166,8 @@ export function useCreateCategory() {
             return result.data;
         },
         onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES] });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GROUPS] });
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES_AND_GROUPS] });
         },
     });
@@ -163,7 +188,6 @@ export function useCreateCurrency() {
     });
 }
 
-// 👈 NEW: Hook to create a new Transaction
 export function useCreateTransaction() {
     const queryClient = useQueryClient();
 
@@ -177,6 +201,112 @@ export function useCreateTransaction() {
             // Refetch the list of transactions and any dashboard summaries
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TRANSACTIONS] }); 
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TRANSACTION_SUMMARY] }); 
+        },
+    });
+}
+
+// --- DELETE/UPDATE MUTATION HOOKS ---
+
+export function useDeleteAccount() {
+    const queryClient = useQueryClient();
+    return useMutation<null, Error, DeleteByIdArgs>({
+        mutationFn: async ({ id }) => {
+            const result = await ManagementRepository.deleteAccount(id);
+            if (result.error) throw result.error;
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACCOUNTS] });
+        },
+    });
+}
+
+export function useDeleteCategory() {
+    const queryClient = useQueryClient();
+    return useMutation<null, Error, DeleteByIdArgs>({
+        mutationFn: async ({ id }) => {
+            const result = await ManagementRepository.deleteCategory(id);
+            if (result.error) throw result.error;
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GROUPS] });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES] });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES_AND_GROUPS] });
+        },
+    });
+}
+
+export function useDeleteCurrency() {
+    const queryClient = useQueryClient();
+    return useMutation<null, Error, DeleteByCodeArgs>({
+        mutationFn: async ({ code }) => {
+            const result = await ManagementRepository.deleteCurrency(code);
+            if (result.error) throw result.error;
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CURRENCIES] });
+        },
+    });
+}
+
+export function useSetMainCurrency() {
+    const queryClient = useQueryClient();
+    return useMutation<null, Error, SetMainCurrencyArgs>({
+        mutationFn: async ({ code }) => {
+            const result = await ManagementRepository.setMainCurrency(code);
+            if (result.error) throw result.error;
+            return result.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CURRENCIES] });
+        },
+    });
+}
+
+// --- UPDATE MUTATION HOOKS (Corrected) ---
+
+export function useUpdateAccount() {
+    const queryClient = useQueryClient();
+    return useMutation<BankAccount | null, Error, UpdateAccountArgs>({
+        mutationFn: async (args: UpdateAccountArgs) => {
+            const { data, error } = await ManagementRepository.updateAccount(args);
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACCOUNTS] });
+        },
+    });
+}
+
+export function useUpdateCategory() {
+    const queryClient = useQueryClient();
+    return useMutation<Category | null, Error, UpdateCategoryArgs>({
+        mutationFn: async (args: UpdateCategoryArgs) => {
+            const { data, error } = await ManagementRepository.updateCategory(args);
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GROUPS] });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES] });
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES_AND_GROUPS] });
+        },
+    });
+}
+
+export function useUpdateCurrency() {
+    const queryClient = useQueryClient();
+    return useMutation<Currency | null, Error, UpdateCurrencyArgs>({
+        mutationFn: async (args: UpdateCurrencyArgs) => {
+            const { data, error } = await ManagementRepository.updateCurrency(args);
+            if (error) throw error;
+            return data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CURRENCIES] });
         },
     });
 }

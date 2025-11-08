@@ -7,28 +7,35 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useCategoriesAndGroups, useCreateCategory } from '@/hooks/useManagementData'; 
+// ✅ UPDATED: Import new hooks
+import { 
+  useGroups, 
+  useCategories, 
+  useCreateCategory, 
+  useDeleteCategory 
+} from '@/hooks/useManagementData'; 
 import { Picker } from '@react-native-picker/picker';
 
-// ✅ Imports from the new component folder
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 import { CategoryRow } from '@/components/list-items/CategoryRow';
-import { CategoryRow as Category } from '@/types/supabase'; // Import canonical type for filtering
 
-// --- Main Modal Component ---
 export default function ManageCategoriesModal() {
   const router = useRouter();
-  const { data: categoriesAndGroups = [], isLoading: loadingCats } = useCategoriesAndGroups();
+  // ✅ UPDATED: Use new granular hooks
+  const { data: groups = [], isLoading: loadingGroups } = useGroups();
+  const { data: categories = [], isLoading: loadingCategories } = useCategories();
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
-
-  // Separate Groups (for picker) and Categories (for list)
-  const groups = categoriesAndGroups.filter((cat: Category) => cat.parent_id === null);
-  const categories = categoriesAndGroups.filter((cat: Category) => cat.parent_id !== null);
+  // ✅ NEW: Get the delete mutation
+  const { mutate: deleteCategory } = useDeleteCategory();
+  
+  // Combine loading states
+  const isLoading = loadingGroups || loadingCategories;
 
   const [name, setName] = useState('');
   const [parentId, setParentId] = useState<string>('None');
 
   const handleAddCategory = () => {
+    // ... (This function remains unchanged)
     if (!name.trim()) {
       Alert.alert('Error', 'Please enter a valid category name.');
       return;
@@ -41,9 +48,33 @@ export default function ManageCategoriesModal() {
     });
   };
   
-  // Placeholder Handlers for List Items
-  const handleEdit = (id: string) => console.log('Edit', id);
-  const handleDelete = (id: string) => console.log('Delete', id);
+// ✅ UPDATED: This function now navigates to the edit modal
+const handleEdit = (id: string) => {
+  const categoryToEdit = categories.find(c => c.id === id);
+  if (categoryToEdit) {
+    router.push({
+      pathname: '/edit-category',
+      params: { item: JSON.stringify(categoryToEdit) }
+    });
+  }
+};
+
+  const handleDelete = (id: string) => {
+    Alert.alert(
+      "Delete Category",
+      "Are you sure? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Delete", 
+          style: "destructive",
+          onPress: () => deleteCategory({ id }, {
+            onError: (e) => Alert.alert('Delete Failed', e.message)
+          })
+        }
+      ]
+    );
+  };
 
   return (
     <View style={modalStyles.safeArea}>
@@ -51,23 +82,23 @@ export default function ManageCategoriesModal() {
         options={{ 
           title: 'Manage Categories',
           headerLeft: () => <View />, 
-          headerRight: CloseButton, // ✅ Reusable component
+          headerRight: CloseButton, 
         }} 
       />
       
       <ScrollView contentContainerStyle={modalStyles.container}>
         
         <Text style={modalStyles.listTitle}>Existing Categories</Text>
-        {loadingCats ? (
+        {isLoading ? ( // ✅ Use combined loading state
           <ActivityIndicator size="small" color="#e63946" />
         ) : (
           <View>
             {categories.map(cat => (
-              <CategoryRow // ✅ Reusable component
+              <CategoryRow 
                 key={cat.id} 
                 category={cat} 
                 onEdit={handleEdit} 
-                onDelete={handleDelete}
+                onDelete={handleDelete} // ✅ Wired up
               />
             ))}
             {categories.length === 0 && <Text style={modalStyles.emptyText}>No sub-categories set up yet.</Text>}
@@ -77,14 +108,14 @@ export default function ManageCategoriesModal() {
         <View style={modalStyles.separator} />
 
         <Text style={modalStyles.addTitle}>Add New</Text>
-        <CustomInput // ✅ Reusable component
+        {/* ... (Add New Form is unchanged, but Picker is populated by `useGroups`) ... */}
+        <CustomInput 
           label="Name"
           placeholder="e.g. Groceries"
           value={name}
           onChangeText={setName}
           autoCapitalize="words"
         />
-
         <View style={modalStyles.inputContainer}>
           <Text style={modalStyles.inputLabel}>Grouping</Text>
           <View style={modalStyles.pickerWrapper}>
@@ -102,8 +133,7 @@ export default function ManageCategoriesModal() {
             </Picker>
           </View>
         </View>
-
-        <PrimaryButton // ✅ Reusable component
+        <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
           onPress={handleAddCategory}
           disabled={isCreating}
@@ -112,4 +142,3 @@ export default function ManageCategoriesModal() {
     </View>
   );
 }
-// 🚫 All previous styles and local components are REMOVED.

@@ -1,87 +1,119 @@
 import React, { ReactNode } from 'react';
 import { 
-  Pressable, 
-  Text, 
-  TextInput, 
-  View, 
   StyleSheet, 
-  TextInputProps,
-  ViewStyle
+  View, 
+  ViewStyle, 
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Picker, PickerProps } from '@react-native-picker/picker';
+import { 
+  Button, 
+  Input, 
+  Icon, 
+  Spinner,
+  Text,
+  InputProps,   // 👈 We will base our CustomInput on this
+  ButtonProps 
+} from '@ui-kitten/components'; 
 
 // --- SHARED COMPONENTS ---
 
-interface PrimaryButtonProps {
-    onPress: () => void;
-    title: string;
-    disabled?: boolean;
-    style?: ViewStyle;
-}
-
-export const PrimaryButton = ({ onPress, title, disabled = false, style }: PrimaryButtonProps) => (
-  <Pressable 
-    style={[modalStyles.button, disabled && modalStyles.buttonDisabled, style]} 
-    onPress={onPress} 
-    disabled={disabled}
-  >
-    <Text style={modalStyles.buttonText}>{title}</Text>
-  </Pressable>
+// Helper component for the Button's loading spinner
+const LoadingIndicator = (props: any): React.ReactElement => (
+  <View {...props} style={[props.style, modalStyles.loadingIndicator]}>
+    <Spinner size='small' status='control' />
+  </View>
 );
 
-// --- 💡 START FIX ---
-// We are changing how these props are defined to be more explicit.
+// --- 1. PrimaryButton (Corrected) ---
+// Uses UI Kitten's ButtonProps for perfect type compatibility.
+interface PrimaryButtonOwnProps {
+    title: string;
+    isLoading?: boolean;
+}
+type PrimaryButtonProps = PrimaryButtonOwnProps & ButtonProps;
 
-// 1. Define the props unique to CustomInput
+export const PrimaryButton = ({ 
+  title, 
+  isLoading = false, 
+  style, 
+  ...buttonProps 
+}: PrimaryButtonProps) => (
+  <Button
+    style={[modalStyles.button, style]}
+    disabled={isLoading || buttonProps.disabled}
+    accessoryLeft={isLoading ? LoadingIndicator : undefined}
+    {...buttonProps}
+  >
+    {title}
+  </Button>
+);
+
+// --- 2. CustomInput (Final Corrected Version) ---
+// This version is compatible with both UI Kitten and React Hook Form.
+
+// 1. Get all props from UI Kitten's Input, but OMIT 'onBlur'
+//    because its type conflicts with React Hook Form.
+type CustomInputUIProps = Omit<InputProps, 'onBlur'>;
+
 interface CustomInputOwnProps { 
   label: string; 
   errorText?: string; 
   containerStyle?: ViewStyle;
+  
+  // 2. Explicitly add 'onBlur' with the type React Hook Form provides
+  onBlur?: () => void; 
 }
-// 2. Create the final type by intersecting our props with TextInputProps
-type CustomInputProps = CustomInputOwnProps & TextInputProps;
 
-// 3. Use the new type and rename ...props to ...textInputProps for clarity
+// 3. Our final props are the (modified) UI Kitten props + our own
+type CustomInputProps = CustomInputOwnProps & CustomInputUIProps;
+
 export const CustomInput = ({ 
   label, 
   errorText, 
-  containerStyle, 
-  ...textInputProps 
+  containerStyle,
+  style, // This 'style' is TextStyle from InputProps
+  ...inputProps // All other compatible props
 }: CustomInputProps) => (
-  <View style={[modalStyles.inputContainer, containerStyle]}> 
-    <Text style={modalStyles.inputLabel}>{label}</Text>
-    {/* 4. Pass the remaining ...textInputProps to the TextInput */}
-    <TextInput 
-      style={[modalStyles.input, errorText && modalStyles.inputError]} 
-      {...textInputProps} 
+  <View style={containerStyle}>
+    <Input
+      style={[modalStyles.input, style]} 
+      label={label}
+      caption={errorText}
+      status={errorText ? 'danger' : 'basic'}
+      {...inputProps} // Pass all other props (value, onChangeText, autoCapitalize, etc.)
     />
-    {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
   </View>
 );
 
-// --- 💡 END FIX ---
+
+// --- 3. CloseButton (Unchanged) ---
+const CloseIcon = (props: any) => (
+  <Icon {...props} name='close-outline' />
+);
 
 export const CloseButton = () => {
     const router = useRouter();
     return (
-        <Pressable onPress={() => router.back()}>
-            <Ionicons name="close" size={24} color="#000" />
-        </Pressable>
+        <Button
+          appearance='ghost'
+          status='basic'
+          accessoryLeft={CloseIcon}
+          onPress={() => router.back()}
+        />
     );
 }
 
-// CustomPicker component (unchanged)
+// --- 4. CustomPicker (Unchanged) ---
 interface CustomPickerProps extends PickerProps {
   label: string;
   errorText?: string;
   children: ReactNode;
 }
 export const CustomPicker = ({ label, errorText, children, ...props }: CustomPickerProps) => (
-  <View style={modalStyles.inputContainer}>
-    <Text style={modalStyles.inputLabel}>{label}</Text>
-    <View style={[modalStyles.pickerWrapper, errorText && modalStyles.inputError]}>
+  <View style={modalStyles.input}>
+    <Text category='label' style={modalStyles.inputLabel}>{label}</Text>
+    <View style={[modalStyles.pickerWrapper, errorText && modalStyles.pickerError]}>
       <Picker
         style={modalStyles.picker}
         {...props}
@@ -89,12 +121,12 @@ export const CustomPicker = ({ label, errorText, children, ...props }: CustomPic
         {children}
       </Picker>
     </View>
-    {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
+    {errorText && <Text category='c1' status='danger' style={modalStyles.errorText}>{errorText}</Text>} 
   </View>
 );
 
-// --- SHARED STYLES ---
-// (Styles remain unchanged)
+
+// --- 5. SHARED STYLES (Unchanged) ---
 export const modalStyles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { padding: 20 },
@@ -109,32 +141,10 @@ export const modalStyles = StyleSheet.create({
   },
   rowText: { fontSize: 16 },
   rowActions: { flexDirection: 'row', alignItems: 'center' },
-  separator: { height: 1, backgroundColor: '#f0f0f0', marginVertical: 20 },
+  separator: { height: 1, backgroundColor: '#f0f0ff', marginVertical: 20 },
   addTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, color: '#333' },
-  inputContainer: { marginBottom: 15 },
-  inputLabel: { fontSize: 14, color: '#666', marginBottom: 5 },
-  input: {
-    height: 48,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    backgroundColor: '#f9f9f9',
-  },
-  inputError: {
-    borderColor: '#e63946',
-  },
-  button: {
-    backgroundColor: '#6200EE',
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonDisabled: { backgroundColor: '#B0B0B0' },
-  buttonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   emptyText: { color: '#999', paddingVertical: 10 },
+  
   pickerWrapper: {
     borderColor: '#ddd',
     borderWidth: 1,
@@ -142,10 +152,14 @@ export const modalStyles = StyleSheet.create({
     overflow: 'hidden',
     backgroundColor: '#f9f9f9',
   },
+  pickerError: {
+    borderColor: '#e63946',
+  },
   picker: {
     height: 48,
     width: '100%',
   },
+
   mainTag: {
     fontSize: 12,
     fontWeight: 'bold',
@@ -160,9 +174,21 @@ export const modalStyles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 15,
   },
-  errorText: { 
-    color: '#e63946', 
-    fontSize: 12, 
-    marginTop: 5 
+
+  button: {
+    marginTop: 10,
+  },
+  input: {
+    marginBottom: 15,
+  },
+  inputLabel: {
+    marginBottom: 5, 
+  },
+  loadingIndicator: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorText: {
+    marginTop: 5,
   }
 });

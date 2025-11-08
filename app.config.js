@@ -1,13 +1,7 @@
 // app.config.js
 import dotenv from 'dotenv'; // 👈 ADD THIS LINE
 dotenv.config();              // 👈 AND THIS LINE
-
-// ---
-// ⚠️ COME UP WITH A BUNDLE ID. IT MUST BE UNIQUE.
-// ---
 const myBundleIdentifier = "com.PB.mobilefinance"; // 👈 YOU CAN USE THIS
-// ---
-
 
 export default {
   expo: {

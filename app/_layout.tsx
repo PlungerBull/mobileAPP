@@ -1,20 +1,27 @@
 import { AuthProvider } from '@/context/AuthContext';
 import { Slot } from 'expo-router';
 import React from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // 👈 NEW IMPORTS
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import * as eva from '@eva-design/eva'; // 👈 IMPORT Eva
+import { ApplicationProvider, IconRegistry } from '@ui-kitten/components'; // 👈 IMPORT UI Kitten
+import { EvaIconsPack } from '@ui-kitten/eva-icons'; // 👈 IMPORT Icons
 
-// 1. Initialize the Query Client once at the root
 const queryClient = new QueryClient();
 
-// This is the Root Layout
 export default function RootLayout() {
   return (
-    // 2. Wrap the entire app with the QueryClientProvider
-    <QueryClientProvider client={queryClient}>
-      {/* 3. The AuthProvider goes inside, wrapping the Slot */}
-      <AuthProvider>
-        <Slot />
-      </AuthProvider>
-    </QueryClientProvider>
+    <>
+      {/* 1. Register the icon pack */}
+      <IconRegistry icons={EvaIconsPack} />
+      
+      {/* 2. Wrap the app in ApplicationProvider */}
+      <ApplicationProvider {...eva} theme={eva.light}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <Slot />
+          </AuthProvider>
+        </QueryClientProvider>
+      </ApplicationProvider>
+    </>
   );
 }

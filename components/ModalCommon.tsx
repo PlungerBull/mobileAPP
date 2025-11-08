@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Picker, PickerProps } from '@react-native-picker/picker'; // 👈 ADDED PickerProps here
+import { Picker, PickerProps } from '@react-native-picker/picker';
 
 // --- SHARED COMPONENTS ---
 
@@ -31,20 +31,37 @@ export const PrimaryButton = ({ onPress, title, disabled = false, style }: Prima
   </Pressable>
 );
 
-interface CustomInputProps extends TextInputProps { 
+// --- 💡 START FIX ---
+// We are changing how these props are defined to be more explicit.
+
+// 1. Define the props unique to CustomInput
+interface CustomInputOwnProps { 
   label: string; 
   errorText?: string; 
-  containerStyle?: ViewStyle; // 👈 RENAMED from 'style'
+  containerStyle?: ViewStyle;
 }
+// 2. Create the final type by intersecting our props with TextInputProps
+type CustomInputProps = CustomInputOwnProps & TextInputProps;
 
-export const CustomInput = ({ label, errorText, containerStyle, ...props }: CustomInputProps) => (
-  // 👈 USE RENAMED prop here
+// 3. Use the new type and rename ...props to ...textInputProps for clarity
+export const CustomInput = ({ 
+  label, 
+  errorText, 
+  containerStyle, 
+  ...textInputProps 
+}: CustomInputProps) => (
   <View style={[modalStyles.inputContainer, containerStyle]}> 
     <Text style={modalStyles.inputLabel}>{label}</Text>
-    <TextInput style={[modalStyles.input, errorText && modalStyles.inputError]} {...props} />
+    {/* 4. Pass the remaining ...textInputProps to the TextInput */}
+    <TextInput 
+      style={[modalStyles.input, errorText && modalStyles.inputError]} 
+      {...textInputProps} 
+    />
     {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
   </View>
 );
+
+// --- 💡 END FIX ---
 
 export const CloseButton = () => {
     const router = useRouter();
@@ -55,7 +72,7 @@ export const CloseButton = () => {
     );
 }
 
-// 👇 ADD THIS NEW COMPONENT
+// CustomPicker component (unchanged)
 interface CustomPickerProps extends PickerProps {
   label: string;
   errorText?: string;
@@ -75,9 +92,9 @@ export const CustomPicker = ({ label, errorText, children, ...props }: CustomPic
     {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
   </View>
 );
-// --- SHARED STYLES ---
-// These styles are now the central point of truth for modal appearance.
 
+// --- SHARED STYLES ---
+// (Styles remain unchanged)
 export const modalStyles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { padding: 20 },
@@ -105,8 +122,8 @@ export const modalStyles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f9f9f9',
   },
-  inputError: { // 👈 NEW STYLE
-    borderColor: '#e63946', // Red border for error
+  inputError: {
+    borderColor: '#e63946',
   },
   button: {
     backgroundColor: '#6200EE',

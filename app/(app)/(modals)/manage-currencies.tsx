@@ -1,19 +1,16 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { 
-  View, 
-  Text, 
-  ScrollView, 
-  Alert, 
-  ActivityIndicator
+  View, Text, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-// ✅ UPDATED: Import new hooks
 import { 
-  useCurrencies, 
-  useCreateCurrency,
-  useDeleteCurrency,
-  useSetMainCurrency
+  useCurrencies, useCreateCurrency, useDeleteCurrency, useSetMainCurrency
 } from '@/hooks/useManagementData'; 
+
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AddCurrencySchema, AddCurrencyFormValues } from '@/types/FormSchemas';
 
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 import { CurrencyRow } from '@/components/list-items/CurrencyRow';
@@ -22,32 +19,36 @@ export default function ManageCurrenciesModal() {
   const router = useRouter();
   const { data: currencies = [], isLoading: loadingCurrencies } = useCurrencies();
   const { mutate: createCurrency, isPending: isCreating } = useCreateCurrency();
-  // ✅ NEW: Get delete and setMain mutations
   const { mutate: deleteCurrency } = useDeleteCurrency();
   const { mutate: setMainCurrency } = useSetMainCurrency();
 
-  const [code, setCode] = useState('');
+  // 👈 REMOVED: useState for code
 
-  const handleAddCurrency = () => {
-    // ... (This function remains unchanged)
-    if (code.trim().length !== 3) {
-      Alert.alert('Error', 'Please enter a 3-letter currency code (e.g., CAD).');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<AddCurrencyFormValues>({
+    resolver: zodResolver(AddCurrencySchema),
+    defaultValues: {
+      code: '',
     }
-    createCurrency({ code: code.toUpperCase().trim() }, {
-      onSuccess: () => setCode(''),
+  });
+
+  // 👈 RHF Submit Handler
+  const handleAddCurrency = (data: AddCurrencyFormValues) => {
+    createCurrency({ code: data.code.toUpperCase().trim() }, {
+      onSuccess: () => reset(), // 👈 Reset form
       onError: (e) => Alert.alert('Creation Failed', e.message),
     });
   };
   
-  // ✅ UPDATED: Implement placeholder handlers
   const handleSetMain = (code: string) => {
+    // ... (This function remains unchanged)
     setMainCurrency({ code }, {
       onError: (e) => Alert.alert('Update Failed', e.message)
     });
   };
-  // ✅ UPDATED: This function now navigates to the edit modal
+
   const handleEdit = (code: string) => {
+    // ... (This function remains unchanged)
     const currencyToEdit = currencies.find(c => c.code === code);
     if (currencyToEdit) {
       router.push({
@@ -58,13 +59,12 @@ export default function ManageCurrenciesModal() {
   };
   
   const handleDelete = (code: string) => {
-    // Prevent deleting the main currency
+    // ... (This function remains unchanged)
     const currency = currencies.find(c => c.code === code);
     if (currency?.is_main) {
       Alert.alert('Error', 'Cannot delete your main currency. Please set another currency as main first.');
       return;
     }
-
     Alert.alert(
       "Delete Currency",
       `Are you sure you want to delete ${code}?`,
@@ -94,6 +94,7 @@ export default function ManageCurrenciesModal() {
       <ScrollView contentContainerStyle={modalStyles.container}>
         
         <Text style={modalStyles.listTitle}>Existing Currencies</Text>
+        {/* ... (List rendering logic is unchanged) ... */}
         {loadingCurrencies ? (
           <ActivityIndicator size="small" color="#e63946" />
         ) : (
@@ -102,9 +103,9 @@ export default function ManageCurrenciesModal() {
               <CurrencyRow 
                 key={c.code} 
                 currency={c} 
-                onSetMain={handleSetMain} // ✅ Wired up
+                onSetMain={handleSetMain}
                 onEdit={handleEdit}
-                onDelete={handleDelete}  // ✅ Wired up
+                onDelete={handleDelete}
               />
             ))}
             {currencies.length === 0 && <Text style={modalStyles.emptyText}>No currencies set up yet.</Text>}
@@ -113,19 +114,28 @@ export default function ManageCurrenciesModal() {
         
         <View style={modalStyles.separator} />
 
-        {/* ... (Add New Form remains unchanged) ... */}
         <Text style={modalStyles.addTitle}>Add New Currency</Text>
-        <CustomInput 
-          label="Code"
-          placeholder="e.g. CAD"
-          value={code}
-          onChangeText={setCode}
-          autoCapitalize="characters"
-          maxLength={3}
+        
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Code"
+              placeholder="e.g. CAD"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="characters"
+              maxLength={3}
+              errorText={errors.code?.message}
+            />
+          )}
         />
         <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
-          onPress={handleAddCurrency}
+          onPress={handleSubmit(handleAddCurrency)} // 👈 RHF Submit
           disabled={isCreating}
         />
       </ScrollView>

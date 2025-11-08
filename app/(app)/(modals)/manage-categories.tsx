@@ -1,68 +1,66 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { 
-  View, 
-  Text, 
-  ScrollView, 
-  Alert, 
-  ActivityIndicator
+  View, Text, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-// ✅ UPDATED: Import new hooks
 import { 
-  useGroups, 
-  useCategories, 
-  useCreateCategory, 
-  useDeleteCategory 
+  useGroups, useCategories, useCreateCategory, useDeleteCategory 
 } from '@/hooks/useManagementData'; 
 import { Picker } from '@react-native-picker/picker';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AddCategorySchema, AddCategoryFormValues } from '@/types/FormSchemas';
+
+import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/components/ModalCommon'; // 👈 Import CustomPicker
 import { CategoryRow } from '@/components/list-items/CategoryRow';
 
 export default function ManageCategoriesModal() {
   const router = useRouter();
-  // ✅ UPDATED: Use new granular hooks
   const { data: groups = [], isLoading: loadingGroups } = useGroups();
   const { data: categories = [], isLoading: loadingCategories } = useCategories();
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
-  // ✅ NEW: Get the delete mutation
   const { mutate: deleteCategory } = useDeleteCategory();
   
-  // Combine loading states
   const isLoading = loadingGroups || loadingCategories;
 
-  const [name, setName] = useState('');
-  const [parentId, setParentId] = useState<string>('None');
+  // 👈 REMOVED: useState for name, parentId
 
-  const handleAddCategory = () => {
-    // ... (This function remains unchanged)
-    if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a valid category name.');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<AddCategoryFormValues>({
+    resolver: zodResolver(AddCategorySchema),
+    defaultValues: {
+      name: '',
+      parentId: 'None',
     }
-    const finalParentId = parentId === 'None' ? null : parentId;
+  });
+
+  // 👈 RHF Submit Handler
+  const handleAddCategory = (data: AddCategoryFormValues) => {
+    const finalParentId = data.parentId === 'None' ? null : data.parentId;
     
-    createCategory({ name: name.trim(), parentId: finalParentId }, { 
-      onSuccess: () => setName(''),
+    createCategory({ name: data.name.trim(), parentId: finalParentId }, { 
+      onSuccess: () => reset(), // 👈 Reset form
       onError: (e) => Alert.alert('Creation Failed', e.message),
     });
   };
   
-// ✅ UPDATED: This function now navigates to the edit modal
-const handleEdit = (id: string) => {
-  const categoryToEdit = categories.find(c => c.id === id);
-  if (categoryToEdit) {
-    router.push({
-      pathname: '/edit-category',
-      params: { item: JSON.stringify(categoryToEdit) }
-    });
-  }
-};
+  const handleEdit = (id: string) => {
+    // ... (This function remains unchanged)
+    const categoryToEdit = categories.find(c => c.id === id);
+    if (categoryToEdit) {
+      router.push({
+        pathname: '/edit-category',
+        params: { item: JSON.stringify(categoryToEdit) }
+      });
+    }
+  };
 
   const handleDelete = (id: string) => {
+    // ... (This function remains unchanged)
     Alert.alert(
-      "Delete Category",
-      "Are you sure? This cannot be undone.",
+      "Delete Category", "Are you sure? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -89,7 +87,8 @@ const handleEdit = (id: string) => {
       <ScrollView contentContainerStyle={modalStyles.container}>
         
         <Text style={modalStyles.listTitle}>Existing Categories</Text>
-        {isLoading ? ( // ✅ Use combined loading state
+        {/* ... (List rendering logic is unchanged) ... */}
+        {isLoading ? (
           <ActivityIndicator size="small" color="#e63946" />
         ) : (
           <View>
@@ -98,7 +97,7 @@ const handleEdit = (id: string) => {
                 key={cat.id} 
                 category={cat} 
                 onEdit={handleEdit} 
-                onDelete={handleDelete} // ✅ Wired up
+                onDelete={handleDelete}
               />
             ))}
             {categories.length === 0 && <Text style={modalStyles.emptyText}>No sub-categories set up yet.</Text>}
@@ -108,34 +107,45 @@ const handleEdit = (id: string) => {
         <View style={modalStyles.separator} />
 
         <Text style={modalStyles.addTitle}>Add New</Text>
-        {/* ... (Add New Form is unchanged, but Picker is populated by `useGroups`) ... */}
-        <CustomInput 
-          label="Name"
-          placeholder="e.g. Groceries"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
+        
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Name"
+              placeholder="e.g. Groceries"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="words"
+              errorText={errors.name?.message}
+            />
+          )}
         />
-        <View style={modalStyles.inputContainer}>
-          <Text style={modalStyles.inputLabel}>Grouping</Text>
-          <View style={modalStyles.pickerWrapper}>
-            <Picker
-              selectedValue={parentId as string} 
-              onValueChange={(itemValue: string) => 
-                setParentId(itemValue)
-              }
-              style={modalStyles.picker}
+        
+        <Controller
+          control={control}
+          name="parentId"
+          render={({ field: { onChange, value } }) => (
+            <CustomPicker
+              label="Grouping"
+              selectedValue={value} 
+              onValueChange={onChange}
+              errorText={errors.parentId?.message}
             >
               <Picker.Item label="None (Top-Level Group)" value="None" /> 
               {groups.map(group => (
                 <Picker.Item key={group.id} label={group.name} value={group.id} />
               ))}
-            </Picker>
-          </View>
-        </View>
+            </CustomPicker>
+          )}
+        />
+       
         <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
-          onPress={handleAddCategory}
+          onPress={handleSubmit(handleAddCategory)} // 👈 RHF Submit
           disabled={isCreating}
         />
       </ScrollView>

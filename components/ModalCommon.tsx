@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { 
   Pressable, 
   Text, 
@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Picker, PickerProps } from '@react-native-picker/picker'; // 👈 ADDED PickerProps here
 
 // --- SHARED COMPONENTS ---
 
@@ -33,10 +34,12 @@ export const PrimaryButton = ({ onPress, title, disabled = false, style }: Prima
 interface CustomInputProps extends TextInputProps { 
   label: string; 
   errorText?: string; 
+  containerStyle?: ViewStyle; // 👈 RENAMED from 'style'
 }
 
-export const CustomInput = ({ label, errorText, ...props }: CustomInputProps) => (
-  <View style={modalStyles.inputContainer}>
+export const CustomInput = ({ label, errorText, containerStyle, ...props }: CustomInputProps) => (
+  // 👈 USE RENAMED prop here
+  <View style={[modalStyles.inputContainer, containerStyle]}> 
     <Text style={modalStyles.inputLabel}>{label}</Text>
     <TextInput style={[modalStyles.input, errorText && modalStyles.inputError]} {...props} />
     {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
@@ -52,6 +55,26 @@ export const CloseButton = () => {
     );
 }
 
+// 👇 ADD THIS NEW COMPONENT
+interface CustomPickerProps extends PickerProps {
+  label: string;
+  errorText?: string;
+  children: ReactNode;
+}
+export const CustomPicker = ({ label, errorText, children, ...props }: CustomPickerProps) => (
+  <View style={modalStyles.inputContainer}>
+    <Text style={modalStyles.inputLabel}>{label}</Text>
+    <View style={[modalStyles.pickerWrapper, errorText && modalStyles.inputError]}>
+      <Picker
+        style={modalStyles.picker}
+        {...props}
+      >
+        {children}
+      </Picker>
+    </View>
+    {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
+  </View>
+);
 // --- SHARED STYLES ---
 // These styles are now the central point of truth for modal appearance.
 

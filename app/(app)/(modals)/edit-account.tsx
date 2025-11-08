@@ -1,8 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { View, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useUpdateAccount } from '@/hooks/useManagementData'; 
 import { AccountRow as BankAccount } from '@/types/supabase';
+
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { EditAccountSchema, EditAccountFormValues } from '@/types/FormSchemas';
 
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 
@@ -13,23 +18,27 @@ export default function EditAccountModal() {
 
   const { mutate: updateAccount, isPending: isUpdating } = useUpdateAccount();
 
-  const [name, setName] = useState(account.name);
-  const [initialBalance, setInitialBalance] = useState(String(account.starting_balance));
-  const [currency, setCurrency] = useState(account.currency); 
+  // 👈 REMOVED: useState for name, initialBalance, currency
 
-  const handleUpdateAccount = () => {
-    if (!name.trim() || isNaN(parseFloat(initialBalance)) || !currency.trim()) {
-      Alert.alert('Error', 'Please enter a valid name, numerical balance, and currency.');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, formState: { errors } } = useForm<EditAccountFormValues>({
+    resolver: zodResolver(EditAccountSchema),
+    defaultValues: {
+      name: account.name,
+      initialBalance: String(account.starting_balance),
+      currency: account.currency,
     }
-    
+  });
+
+  // 👈 RHF Submit Handler
+  const handleUpdateAccount = (data: EditAccountFormValues) => {
     updateAccount(
       { 
         id: account.id,
         updates: { 
-          name: name.trim(),
-          starting_balance: parseFloat(initialBalance), 
-          currency: currency.trim(),
+          name: data.name.trim(),
+          starting_balance: parseFloat(data.initialBalance), 
+          currency: data.currency.trim(),
         }
       }, 
       {
@@ -49,31 +58,56 @@ export default function EditAccountModal() {
         }} 
       />
       <ScrollView contentContainerStyle={modalStyles.container}>
-        <CustomInput 
-          label="Name"
-          placeholder="e.g. Savings Account"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Name"
+              placeholder="e.g. Savings Account"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="words"
+              errorText={errors.name?.message}
+            />
+          )}
         />
-        <CustomInput 
-          label="Balance"
-          placeholder="0.00"
-          value={initialBalance}
-          onChangeText={setInitialBalance}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="initialBalance"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Balance"
+              placeholder="0.00"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              errorText={errors.initialBalance?.message}
+            />
+          )}
         />
-        <CustomInput 
-          label="Currency Code"
-          placeholder="e.g. USD"
-          value={currency}
-          onChangeText={setCurrency}
-          autoCapitalize="characters"
-          maxLength={3}
+        <Controller
+          control={control}
+          name="currency"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Currency Code"
+              placeholder="e.g. USD"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="characters"
+              maxLength={3}
+              errorText={errors.currency?.message}
+            />
+          )}
         />
         <PrimaryButton 
           title={isUpdating ? 'Saving...' : 'Save Changes'}
-          onPress={handleUpdateAccount}
+          onPress={handleSubmit(handleUpdateAccount)} // 👈 RHF Submit
           disabled={isUpdating}
         />
       </ScrollView>

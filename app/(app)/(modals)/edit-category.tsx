@@ -1,35 +1,44 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useUpdateCategory, useGroups } from '@/hooks/useManagementData'; 
 import { CategoryRow as Category } from '@/types/supabase';
 import { Picker } from '@react-native-picker/picker';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { EditCategorySchema, EditCategoryFormValues } from '@/types/FormSchemas';
+
+import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/components/ModalCommon'; // 👈 Import CustomPicker
 
 export default function EditCategoryModal() {
   const router = useRouter();
   const { item } = useLocalSearchParams();
   const category = JSON.parse(item as string) as Category;
 
-  const { data: groups = [] } = useGroups(); // Fetch groups for the picker
+  const { data: groups = [] } = useGroups();
   const { mutate: updateCategory, isPending: isUpdating } = useUpdateCategory();
 
-  const [name, setName] = useState(category.name);
-  const [parentId, setParentId] = useState<string>(category.parent_id || 'None');
+  // 👈 REMOVED: useState for name, parentId
 
-  const handleUpdateCategory = () => {
-    if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a valid name.');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, formState: { errors } } = useForm<EditCategoryFormValues>({
+    resolver: zodResolver(EditCategorySchema),
+    defaultValues: {
+      name: category.name,
+      parentId: category.parent_id || 'None',
     }
-    
+  });
+
+  // 👈 RHF Submit Handler
+  const handleUpdateCategory = (data: EditCategoryFormValues) => {
     updateCategory(
       { 
         id: category.id,
         updates: { 
-          name: name.trim(),
-          parent_id: parentId === 'None' ? null : parentId
+          name: data.name.trim(),
+          parent_id: data.parentId === 'None' ? null : data.parentId
         }
       }, 
       {
@@ -49,33 +58,44 @@ export default function EditCategoryModal() {
         }} 
       />
       <ScrollView contentContainerStyle={modalStyles.container}>
-        <CustomInput 
-          label="Name"
-          placeholder="e.g. Groceries"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Name"
+              placeholder="e.g. Groceries"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="words"
+              errorText={errors.name?.message}
+            />
+          )}
         />
 
-        <View style={modalStyles.inputContainer}>
-          <Text style={modalStyles.inputLabel}>Grouping</Text>
-          <View style={modalStyles.pickerWrapper}>
-            <Picker
-              selectedValue={parentId} 
-              onValueChange={(itemValue: string) => setParentId(itemValue)}
-              style={modalStyles.picker}
+        <Controller
+          control={control}
+          name="parentId"
+          render={({ field: { onChange, value } }) => (
+            <CustomPicker
+              label="Grouping"
+              selectedValue={value} 
+              onValueChange={onChange}
+              errorText={errors.parentId?.message}
             >
               <Picker.Item label="None (Top-Level Group)" value="None" /> 
               {groups.map(group => (
                 <Picker.Item key={group.id} label={group.name} value={group.id} />
               ))}
-            </Picker>
-          </View>
-        </View>
+            </CustomPicker>
+          )}
+        />
 
         <PrimaryButton 
           title={isUpdating ? 'Saving...' : 'Save Changes'}
-          onPress={handleUpdateCategory}
+          onPress={handleSubmit(handleUpdateCategory)} // 👈 RHF Submit
           disabled={isUpdating}
         />
       </ScrollView>

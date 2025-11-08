@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { View, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
 import { useUpdateCurrency } from '@/hooks/useManagementData'; 
 import { CurrencyRow as Currency } from '@/types/supabase';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { EditCurrencySchema, EditCurrencyFormValues } from '@/types/FormSchemas';
 
-// Note: We are only allowing editing the code, as 'is_main' is handled
-// by the "Set as Main" button in the list.
+import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 
 export default function EditCurrencyModal() {
   const router = useRouter();
@@ -16,19 +18,23 @@ export default function EditCurrencyModal() {
 
   const { mutate: updateCurrency, isPending: isUpdating } = useUpdateCurrency();
 
-  const [code, setCode] = useState(currency.code);
+  // 👈 REMOVED: useState for code
 
-  const handleUpdateCurrency = () => {
-    if (code.trim().length !== 3) {
-      Alert.alert('Error', 'Code must be 3 letters.');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, formState: { errors } } = useForm<EditCurrencyFormValues>({
+    resolver: zodResolver(EditCurrencySchema),
+    defaultValues: {
+      code: currency.code,
     }
-    
+  });
+
+  // 👈 RHF Submit Handler
+  const handleUpdateCurrency = (data: EditCurrencyFormValues) => {
     updateCurrency(
       { 
         code: currency.code, // Use the *original* code to find the row
         updates: { 
-          code: code.toUpperCase().trim(), // Set the new code
+          code: data.code.toUpperCase().trim(), // Set the new code
         }
       }, 
       {
@@ -48,17 +54,26 @@ export default function EditCurrencyModal() {
         }} 
       />
       <ScrollView contentContainerStyle={modalStyles.container}>
-        <CustomInput 
-          label="Currency Code"
-          placeholder="e.g. USD"
-          value={code}
-          onChangeText={setCode}
-          autoCapitalize="characters"
-          maxLength={3}
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="code"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Currency Code"
+              placeholder="e.g. USD"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="characters"
+              maxLength={3}
+              errorText={errors.code?.message}
+            />
+          )}
         />
         <PrimaryButton 
           title={isUpdating ? 'Saving...' : 'Save Changes'}
-          onPress={handleUpdateCurrency}
+          onPress={handleSubmit(handleUpdateCurrency)} // 👈 RHF Submit
           disabled={isUpdating}
         />
       </ScrollView>

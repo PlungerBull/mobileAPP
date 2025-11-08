@@ -7,7 +7,6 @@ export const LoginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
-
 export type LoginFormValues = z.infer<typeof LoginSchema>;
 
 export const SignUpSchema = z.object({
@@ -16,26 +15,58 @@ export const SignUpSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
-
 export type SignUpFormValues = z.infer<typeof SignUpSchema>;
 
-// --- Management Schemas (Placeholders) ---
+// --- Management "Add" Schemas ---
 
-// Example schema for adding an account
+// For the 'Add New Account' form in manage-accounts.tsx
 export const AddAccountSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  initialBalance: z.number().nonnegative('Balance must be non-negative'),
-  currency: z.string().length(3, 'Currency must be a 3-letter code'),
+  initialBalance: z.string().regex(/^\-?(\d+)(\.\d{1,2})?$/, 'Invalid amount'),
+  currency: z.string().length(3, 'Must be 3 letters').min(1, 'Required'),
 });
-
 export type AddAccountFormValues = z.infer<typeof AddAccountSchema>;
 
-// Example schema for adding a transaction
+// For the 'Add New' form in manage-categories.tsx
+export const AddCategorySchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  parentId: z.string(), // 'None' or a UUID
+});
+export type AddCategoryFormValues = z.infer<typeof AddCategorySchema>;
+
+// For the 'Add New' form in manage-groupings.tsx
+export const AddGroupingSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+});
+export type AddGroupingFormValues = z.infer<typeof AddGroupingSchema>;
+
+// For the 'Add New Currency' form in manage-currencies.tsx
+export const AddCurrencySchema = z.object({
+  code: z.string().length(3, 'Code must be 3 letters').min(1, 'Required'),
+});
+export type AddCurrencyFormValues = z.infer<typeof AddCurrencySchema>;
+
+// For the 'Add Transaction' modal
 export const AddTransactionSchema = z.object({
-  description: z.string().min(1, 'Description is required').optional(),
-  amount: z.string().regex(/^\d+(\.\d{1,2})?$/, 'Invalid amount format'), // Keep as string for RNF keyboardType="numeric"
+  description: z.string().min(1, 'Description is required'),
+  // Keep amount as string for RHF keyboardType="numeric"
+  amount: z.string().regex(/^\-?(\d+)(\.\d{1,2})?$/, 'Invalid amount format'), 
   accountId: z.string().uuid('Account is required'),
   categoryId: z.string().uuid('Category is required'),
 });
-
 export type AddTransactionFormValues = z.infer<typeof AddTransactionSchema>;
+
+
+// --- Management "Edit" Schemas ---
+
+// For the 'edit-account.tsx' modal
+export const EditAccountSchema = AddAccountSchema; // Same rules as adding
+export type EditAccountFormValues = z.infer<typeof EditAccountSchema>;
+
+// For the 'edit-category.tsx' modal
+export const EditCategorySchema = AddCategorySchema; // Same rules as adding
+export type EditCategoryFormValues = z.infer<typeof EditCategorySchema>;
+
+// For the 'edit-currency.tsx' modal
+export const EditCurrencySchema = AddCurrencySchema; // Same rules as adding
+export type EditCurrencyFormValues = z.infer<typeof EditCurrencySchema>;

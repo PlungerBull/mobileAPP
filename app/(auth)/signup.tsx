@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+// app/(auth)/signup.tsx
+
+import React from 'react'; // 👈 REMOVED: useState
 import {
   View,
   Text,
-  TextInput,
+  // 👈 REMOVED: TextInput (now handled by CustomInput)
   StyleSheet,
   Alert,
   ScrollView,
@@ -12,21 +14,42 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-// 🚫 REMOVED: import { supabase } from '@/lib/supabase';
-import { AuthService } from '@/services/AuthService'; // 👈 NEW SERVICE IMPORT
+import { AuthService } from '@/services/AuthService'; // 👈 Already correct
+
+// 👇 NEW IMPORTS for RHF
+import { useForm, Controller } from 'react-hook-form'; 
+import { zodResolver } from '@hookform/resolvers/zod'; 
+import { SignUpSchema, SignUpFormValues } from '@/types/FormSchemas'; 
+import { CustomInput } from '@/components/ModalCommon'; // 👈 Use CustomInput
 
 export default function SignUpScreen() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  // 👈 REMOVED: All useState hooks (firstName, lastName, email, password, loading)
   const router = useRouter();
 
-  const handleSignUp = async () => {
-    setLoading(true);
-    // 👈 Now using AuthService to handle registration logic
-    const { error } = await AuthService.signUp(firstName, lastName, email, password);
+  // 👇 NEW: RHF setup with Zod resolver
+  const { 
+    control, 
+    handleSubmit, 
+    formState: { errors, isSubmitting } 
+  } = useForm<SignUpFormValues>({
+    resolver: zodResolver(SignUpSchema),
+    defaultValues: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        password: '',
+    }
+  });
+
+  // 👇 NEW: RHF submit handler
+  const handleSignUp = async (data: SignUpFormValues) => {
+    // isSubmitting handles the loading state
+    const { error } = await AuthService.signUp(
+      data.firstName, 
+      data.lastName, 
+      data.email, 
+      data.password
+    );
 
     if (error) {
       Alert.alert('Sign Up Failed', error.message);
@@ -34,7 +57,7 @@ export default function SignUpScreen() {
       Alert.alert('Success', 'Please check your email to confirm your account.');
       router.replace('/login');
     }
-    setLoading(false);
+    // 👈 REMOVED: setLoading(false)
   };
 
   return (
@@ -44,7 +67,7 @@ export default function SignUpScreen() {
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
-          <Text style={styles.welcomeTitle}>Welcome Back</Text>
+          <Text style={styles.welcomeTitle}>Create Account</Text>
 
           {/* This is the white card */}
           <View style={styles.card}>
@@ -52,61 +75,96 @@ export default function SignUpScreen() {
 
             {/* First/Last Name Row */}
             <View style={styles.nameRow}>
-              <TextInput
-                style={[styles.input, styles.nameInput]}
-                placeholder="First Name"
-                placeholderTextColor="#999"
-                value={firstName}
-                onChangeText={setFirstName}
-                autoCapitalize="words"
+              {/* 👈 RHF Controller for First Name */}
+              <Controller
+                control={control}
+                name="firstName"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <CustomInput
+                    label="First Name"
+                    placeholder="First Name"
+                    // ... (other props) ...
+                    errorText={errors.firstName?.message}
+                    containerStyle={styles.nameInput} // 👈 RENAMED from 'style'
+                  />
+                )}
               />
-              <TextInput
-                style={[styles.input, styles.nameInput]}
-                placeholder="Last Name"
-                placeholderTextColor="#999"
-                value={lastName}
-                onChangeText={setLastName}
-                autoCapitalize="words"
+              {/* 👈 RHF Controller for Last Name */}
+              <Controller
+                control={control}
+                name="lastName"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <CustomInput
+                    label="Last Name"
+                    placeholder="Last Name"
+                    placeholderTextColor="#999"
+                    onBlur={onBlur}
+                    onChangeText={onChange}
+                    value={value}
+                    autoCapitalize="words"
+                    errorText={errors.lastName?.message}
+                    containerStyle={styles.nameInput} // 👈 RENAMED from 'style'
+                  />
+                )}
               />
             </View>
 
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
+            {/* 👈 NEW: RHF Controller for Email */}
+            <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <CustomInput
+                        label="Email address"
+                        placeholder="Email address"
+                        placeholderTextColor="#999"
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        errorText={errors.email?.message} 
+                    />
+                )}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+            
+            {/* 👈 NEW: RHF Controller for Password */}
+            <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <CustomInput
+                        label="Password"
+                        placeholder="Password"
+                        placeholderTextColor="#999"
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                        secureTextEntry
+                        errorText={errors.password?.message}
+                    />
+                )}
             />
-
+            
             {/* Custom Red Button */}
             <Pressable
               style={styles.button}
-              onPress={handleSignUp}
-              disabled={loading}
+              onPress={handleSubmit(handleSignUp)} // 👈 Use RHF's handleSubmit
+              disabled={isSubmitting} // 👈 Use RHF's loading state
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Creating Account...' : 'Sign up with Email'}
+                {isSubmitting ? 'Creating Account...' : 'Sign up with Email'}
               </Text>
             </Pressable>
 
-            {/* Terms of Service Text */}
+            {/* Terms of Service Text (unchanged) */}
             <Text style={styles.termsText}>
               By continuing, you agree to our{' '}
               <Text style={styles.linkTextAction}>Terms of Service</Text> and{' '}
               <Text style={styles.linkTextAction}>Privacy Policy</Text>.
             </Text>
 
-            {/* Log in Link Area */}
+            {/* Log in Link Area (unchanged) */}
             <View style={styles.linkContainer}>
               <Text style={styles.linkText}>Already have an account? </Text>
               <Link href="/login">
@@ -122,11 +180,12 @@ export default function SignUpScreen() {
   );
 }
 
-// 👇 Styles to match your new design
+// Styles are updated to remove the 'input' style which is
+// now handled by CustomInput. 'nameInput' is kept for layout.
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#f4f4f5', // Light gray background
+    backgroundColor: '#f4f4f5', 
   },
   container: {
     flexGrow: 1,
@@ -159,22 +218,13 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    // marginBottom: 16, // 👈 Handled by CustomInput's internal style
   },
   nameInput: {
     width: '48%', // Creates the two-column layout
-    marginBottom: 0, // Margin is handled by the row
+    marginBottom: 16, // 👈 Keep marginBottom here for the row
   },
-  input: {
-    height: 48,
-    borderColor: '#ddd',
-    borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    backgroundColor: '#fff',
-  },
+  // 👈 REMOVED: 'input' style is no longer needed
   button: {
     backgroundColor: '#e63946',
     paddingVertical: 14,

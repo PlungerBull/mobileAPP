@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { 
-  View, 
-  Alert, 
-  ActivityIndicator,
-  ScrollView,
-  Text,
+  View, Alert, ActivityIndicator, ScrollView, Text,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-// ✅ UPDATED: Import the delete hook
 import { useAccounts, useCreateAccount, useDeleteAccount } from '@/hooks/useManagementData';
+
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AddAccountSchema, AddAccountFormValues } from '@/types/FormSchemas';
 
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 import { AccountRow } from '@/components/list-items/AccountRow';
@@ -17,30 +17,37 @@ export default function ManageAccountsModal() {
   const router = useRouter();
   const { data: accounts = [], isLoading: loadingAccounts } = useAccounts();
   const { mutate: createAccount, isPending: isCreating } = useCreateAccount();
-  // ✅ NEW: Get the delete mutation
   const { mutate: deleteAccount } = useDeleteAccount();
 
-  const [name, setName] = useState('');
-  const [initialBalance, setInitialBalance] = useState('0');
-  const [currency, setCurrency] = useState('USD'); 
+  // 👈 REMOVED: useState for name, initialBalance, currency
 
-  const handleAddAccount = () => {
-    // ... (This function remains unchanged)
-    if (!name.trim() || isNaN(parseFloat(initialBalance)) || !currency.trim()) {
-      Alert.alert('Error', 'Please enter a valid name, numerical balance, and currency.');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<AddAccountFormValues>({
+    resolver: zodResolver(AddAccountSchema),
+    defaultValues: {
+      name: '',
+      initialBalance: '0',
+      currency: 'USD',
     }
+  });
+
+  // 👈 RHF Submit Handler
+  const handleAddAccount = (data: AddAccountFormValues) => {
     createAccount(
-      { name: name.trim(), initialBalance: parseFloat(initialBalance), currencyCode: currency.trim() }, 
+      { 
+        name: data.name.trim(), 
+        initialBalance: parseFloat(data.initialBalance), 
+        currencyCode: data.currency.toUpperCase().trim() 
+      }, 
       {
-        onSuccess: () => { setName(''); setInitialBalance('0'); },
-        onError: (error) => { Alert.alert('Creation Failed', error.message); },
+        onSuccess: () => reset(), // 👈 Reset form on success
+        onError: (error) => Alert.alert('Creation Failed', error.message),
       }
     );
   };
   
-  // ✅ UPDATED: This function now navigates to the edit modal
   const handleEdit = (id: string) => {
+    // ... (This function remains unchanged)
     const accountToEdit = accounts.find(a => a.id === id);
     if (accountToEdit) {
       router.push({
@@ -50,11 +57,10 @@ export default function ManageAccountsModal() {
     }
   };
 
-  // ✅ --- THIS IS THE MISSING FUNCTION ---
   const handleDelete = (id: string) => {
+    // ... (This function remains unchanged)
     Alert.alert(
-      "Delete Account",
-      "Are you sure? This cannot be undone.",
+      "Delete Account", "Are you sure? This cannot be undone.",
       [
         { text: "Cancel", style: "cancel" },
         { 
@@ -67,7 +73,6 @@ export default function ManageAccountsModal() {
       ]
     );
   };
-  // ✅ --- END OF MISSING FUNCTION ---
 
   return (
     <View style={modalStyles.safeArea}>
@@ -82,6 +87,7 @@ export default function ManageAccountsModal() {
       <ScrollView contentContainerStyle={modalStyles.container}>
         
         <Text style={modalStyles.listTitle}>Existing Accounts</Text>
+        {/* ... (List rendering logic is unchanged) ... */}
         {loadingAccounts ? (
           <ActivityIndicator size="small" color="#e63946" />
         ) : (
@@ -91,7 +97,7 @@ export default function ManageAccountsModal() {
                 key={account.id} 
                 account={account} 
                 onEdit={handleEdit} 
-                onDelete={handleDelete} // ✅ This will now correctly find the function
+                onDelete={handleDelete}
               />
             ))}
             {accounts.length === 0 && <Text style={modalStyles.emptyText}>No accounts added yet.</Text>}
@@ -100,33 +106,58 @@ export default function ManageAccountsModal() {
         
         <View style={modalStyles.separator} />
 
-        {/* ... (Add New Form remains unchanged) ... */}
         <Text style={modalStyles.addTitle}>Add New Account</Text>
-        <CustomInput 
-          label="Name"
-          placeholder="e.g. Savings Account"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
+        
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Name"
+              placeholder="e.g. Savings Account"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="words"
+              errorText={errors.name?.message}
+            />
+          )}
         />
-        <CustomInput 
-          label="Initial Balance"
-          placeholder="0.00"
-          value={initialBalance}
-          onChangeText={setInitialBalance}
-          keyboardType="numeric"
+        <Controller
+          control={control}
+          name="initialBalance"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Initial Balance"
+              placeholder="0.00"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              keyboardType="numeric"
+              errorText={errors.initialBalance?.message}
+            />
+          )}
         />
-        <CustomInput 
-          label="Currency Code"
-          placeholder="e.g. USD"
-          value={currency}
-          onChangeText={setCurrency}
-          autoCapitalize="characters"
-          maxLength={3}
+        <Controller
+          control={control}
+          name="currency"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Currency Code"
+              placeholder="e.g. USD"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="characters"
+              maxLength={3}
+              errorText={errors.currency?.message}
+            />
+          )}
         />
         <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
-          onPress={handleAddAccount}
+          onPress={handleSubmit(handleAddAccount)} // 👈 RHF Submit
           disabled={isCreating}
         />
       </ScrollView>

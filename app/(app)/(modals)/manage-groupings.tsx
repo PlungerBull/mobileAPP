@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState
 import { 
-  View, 
-  Text, 
-  ScrollView, 
-  Alert, 
-  ActivityIndicator
+  View, Text, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-// ✅ UPDATED: Import new hooks
 import { useGroups, useCreateGrouping, useDeleteCategory } from '@/hooks/useManagementData'; 
+
+// 👈 RHF Imports
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { AddGroupingSchema, AddGroupingFormValues } from '@/types/FormSchemas';
 
 import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
 import { CategoryRow } from '@/components/list-items/CategoryRow';
@@ -16,38 +16,41 @@ import { CategoryRow } from '@/components/list-items/CategoryRow';
 
 export default function ManageGroupingsModal() {
   const router = useRouter();
-  // ✅ UPDATED: Use the new granular hook
   const { data: groupings = [], isLoading: loadingGroups } = useGroups();
   const { mutate: createGrouping, isPending: isCreating } = useCreateGrouping();
-  // ✅ NEW: Get the delete mutation (it's the same one for categories and groups)
   const { mutate: deleteGrouping } = useDeleteCategory();
 
-  const [name, setName] = useState('');
+  // 👈 REMOVED: useState for name
 
-  const handleAddGrouping = () => {
-    // ... (This function remains unchanged)
-    if (!name.trim()) {
-      Alert.alert('Error', 'Please enter a valid grouping name.');
-      return;
+  // 👈 RHF Setup
+  const { control, handleSubmit, reset, formState: { errors } } = useForm<AddGroupingFormValues>({
+    resolver: zodResolver(AddGroupingSchema),
+    defaultValues: {
+      name: '',
     }
-    createGrouping(name.trim(), {
-      onSuccess: () => setName(''),
+  });
+
+  // 👈 RHF Submit Handler
+  const handleAddGrouping = (data: AddGroupingFormValues) => {
+    createGrouping(data.name.trim(), {
+      onSuccess: () => reset(), // 👈 Reset form
       onError: (e) => Alert.alert('Creation Failed', e.message),
     });
   };
   
-// ✅ UPDATED: This function now navigates to the edit modal
-const handleEdit = (id: string) => {
-  const groupToEdit = groupings.find(g => g.id === id);
-  if (groupToEdit) {
-    router.push({
-      pathname: '/edit-category', // Re-uses the category edit screen
-      params: { item: JSON.stringify(groupToEdit) }
-    });
-  }
-};
+  const handleEdit = (id: string) => {
+    // ... (This function remains unchanged)
+    const groupToEdit = groupings.find(g => g.id === id);
+    if (groupToEdit) {
+      router.push({
+        pathname: '/edit-category', 
+        params: { item: JSON.stringify(groupToEdit) }
+      });
+    }
+  };
 
   const handleDelete = (id: string) => {
+    // ... (This function remains unchanged)
     Alert.alert(
       "Delete Grouping",
       "Are you sure? This may also affect sub-categories.",
@@ -77,6 +80,7 @@ const handleEdit = (id: string) => {
       <ScrollView contentContainerStyle={modalStyles.container}>
         
         <Text style={modalStyles.listTitle}>Existing Groupings</Text>
+        {/* ... (List rendering logic is unchanged) ... */}
         {loadingGroups ? (
           <ActivityIndicator size="small" color="#e63946" />
         ) : (
@@ -86,7 +90,7 @@ const handleEdit = (id: string) => {
                 key={group.id} 
                 category={group} 
                 onEdit={handleEdit} 
-                onDelete={handleDelete} // ✅ Wired up
+                onDelete={handleDelete}
               />
             ))}
             {groupings.length === 0 && <Text style={modalStyles.emptyText}>No groupings set up yet.</Text>}
@@ -95,18 +99,27 @@ const handleEdit = (id: string) => {
         
         <View style={modalStyles.separator} />
 
-        {/* ... (Add New Form remains unchanged) ... */}
         <Text style={modalStyles.addTitle}>Add New</Text>
-        <CustomInput 
-          label="Name"
-          placeholder="e.g. Housing"
-          value={name}
-          onChangeText={setName}
-          autoCapitalize="words"
+        
+        {/* 👈 Refactored Form */}
+        <Controller
+          control={control}
+          name="name"
+          render={({ field: { onChange, onBlur, value } }) => (
+            <CustomInput 
+              label="Name"
+              placeholder="e.g. Housing"
+              value={value}
+              onChangeText={onChange}
+              onBlur={onBlur}
+              autoCapitalize="words"
+              errorText={errors.name?.message}
+            />
+          )}
         />
         <PrimaryButton 
           title={isCreating ? 'Adding...' : 'Add'}
-          onPress={handleAddGrouping}
+          onPress={handleSubmit(handleAddGrouping)} // 👈 RHF Submit
           disabled={isCreating}
         />
       </ScrollView>

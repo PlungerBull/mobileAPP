@@ -5,7 +5,7 @@
 export interface Database {
     public: {
       Tables: {
-        accounts: {
+        bankAccounts: {
           Row: {
             id: string;
             created_at: string;
@@ -14,8 +14,8 @@ export interface Database {
             starting_balance: number;
             currency: string;
           };
-          Insert: Omit<Database['public']['Tables']['accounts']['Row'], 'id' | 'created_at' | 'user_id'>;
-          Update: Partial<Database['public']['Tables']['accounts']['Row']>;
+          Insert: Omit<Database['public']['Tables']['bankAccounts']['Row'], 'id' | 'created_at' | 'user_id'>;
+          Update: Partial<Database['public']['Tables']['bankAccounts']['Row']>;
         };
         categories: {
           Row: {
@@ -69,8 +69,8 @@ export interface Database {
   export type TransactionRow = Database['public']['Tables']['transactions']['Row'];
   export type NewTransaction = Database['public']['Tables']['transactions']['Insert'];
   
-  export type AccountRow = Database['public']['Tables']['accounts']['Row'];
-  export type NewAccount = Database['public']['Tables']['accounts']['Insert'];
+  export type AccountRow = Database['public']['Tables']['bankAccounts']['Row'];
+  export type NewAccount = Database['public']['Tables']['bankAccounts']['Insert'];
   
   export type CategoryRow = Database['public']['Tables']['categories']['Row'];
   export type NewCategory = Database['public']['Tables']['categories']['Insert'];

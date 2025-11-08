@@ -32,7 +32,7 @@ export const ManagementRepository = {
   /** Fetches all bank accounts (Table: accounts). */
   async getAccounts(): Promise<ServiceResponse<BankAccount[]>> {
     const { data, error } = await dbClient
-      .from('accounts') 
+      .from('bankAccounts') 
       .select('*')
       .returns<BankAccount[]>();
 
@@ -108,7 +108,7 @@ export const ManagementRepository = {
       .from('transactions')
       .select(`
         *,
-        accounts (name, currency),
+        bankAccounts (name, currency),
         categories (name, parent_id)
       `)
       .limit(limit)
@@ -141,7 +141,7 @@ export const ManagementRepository = {
     }
 
     const { data, error } = await dbClient
-        .from('accounts')
+        .from('bankAccounts')
         .insert(newAccount)
         .select()
         .single();
@@ -272,7 +272,7 @@ export const ManagementRepository = {
 
   /** Deletes an account by its ID. */
   async deleteAccount(id: string): Promise<ServiceResponse<null>> {
-    const { error } = await dbClient.from('accounts').delete().match({ id });
+    const { error } = await dbClient.from('bankAccounts').delete().match({ id });
     if (error) {
       console.error('ManagementRepository [deleteAccount] Error:', error.message);
       return { data: null, error: new Error('Failed to delete account.') };
@@ -332,7 +332,7 @@ export const ManagementRepository = {
   /** Updates an existing bank account. */
   async updateAccount({ id, updates }: UpdateAccountArgs): Promise<ServiceResponse<BankAccount | null>> {
     const { data, error } = await dbClient
-        .from('accounts')
+        .from('bankAccounts')
         .update(updates)
         .match({ id })
         .select()

@@ -1,79 +1,109 @@
-import React, { useState } from 'react';
+import React from 'react'; // 👈 REMOVED: useState, setLoading
 import {
   View,
   Text,
-  TextInput,
+  TextInput, // Still used, but wrapped by Controller
   StyleSheet,
   Alert,
   ScrollView,
-  Pressable, // 争 We now use Pressable for the custom button
-  KeyboardAvoidingView, // 争 Add this
-  Platform // 争 Add this
+  Pressable,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link } from 'expo-router';
-// 🚫 REMOVED: import { supabase } from '@/lib/supabase';
-import { AuthService } from '@/services/AuthService'; // 👈 NEW SERVICE IMPORT
+// 👈 NEW IMPORTS for RHF
+import { useForm, Controller } from 'react-hook-form'; 
+import { zodResolver } from '@hookform/resolvers/zod'; 
+
+import { AuthService } from '@/services/AuthService'; 
+import { CustomInput } from '@/components/ModalCommon'; // We'll re-use this input
+import { LoginSchema, LoginFormValues } from '@/types/FormSchemas'; // 👈 NEW: Import Schema
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  // 👈 NEW: RHF setup with Zod resolver
+  const { 
+    control, 
+    handleSubmit, 
+    formState: { errors, isSubmitting } 
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(LoginSchema),
+    defaultValues: {
+        email: '',
+        password: '',
+    }
+  });
 
-  // This Supabase logic remains the same
-  const handleLogin = async () => {
-    setLoading(true);
-    // 👈 Now using AuthService to handle login logic
-    const { error } = await AuthService.signInWithPassword(email, password);
+  // 👈 NEW: RHF submit handler
+  const onSubmit = async (data: LoginFormValues) => {
+    // isSubmitting handles the loading state, no need for manual setLoading(true/false)
+    const { error } = await AuthService.signInWithPassword(data.email, data.password);
 
     if (error) {
       Alert.alert('Login Failed', error.message);
     }
-    setLoading(false);
   };
 
   return (
     <SafeAreaView style={styles.safeContainer} edges={['top', 'bottom']}>
-      {/* Use KeyboardAvoidingView to move the form up when the keyboard appears */}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
         <ScrollView contentContainerStyle={styles.container}>
-          {/* "Welcome" title from your design */}
           <Text style={styles.welcomeTitle}>Welcome Back</Text>
 
-          {/* This is the white card */}
           <View style={styles.card}>
             <Text style={styles.title}>Log in</Text>
 
-            {/* Inputs are now simplified, no icons */}
-            <TextInput
-              style={styles.input}
-              placeholder="Email address"
-              placeholderTextColor="#999"
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
+            {/* 👈 NEW: RHF Controller for Email */}
+            <Controller
+                control={control}
+                name="email"
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <CustomInput
+                        label="Email address"
+                        placeholder="Email address"
+                        placeholderTextColor="#999"
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                        autoCapitalize="none"
+                        keyboardType="email-address"
+                        // 👈 Display Zod validation error
+                        errorText={errors.email?.message} 
+                    />
+                )}
             />
-            <TextInput
-              style={styles.input}
-              placeholder="Password"
-              placeholderTextColor="#999"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
+
+            {/* 👈 NEW: RHF Controller for Password */}
+            <Controller
+                control={control}
+                name="password"
+                render={({ field: { onChange, onBlur, value } }) => (
+                    <CustomInput
+                        label="Password"
+                        placeholder="Password"
+                        placeholderTextColor="#999"
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                        secureTextEntry
+                        // 👈 Display Zod validation error
+                        errorText={errors.password?.message}
+                    />
+                )}
             />
 
             {/* Custom Red Button */}
             <Pressable
+              // 👈 NEW: Use RHF's handleSubmit wrapper
               style={styles.button}
-              onPress={handleLogin}
-              disabled={loading}
+              onPress={handleSubmit(onSubmit)}
+              disabled={isSubmitting} // 👈 Use RHF's submission state for loading
             >
               <Text style={styles.buttonText}>
-                {loading ? 'Logging in...' : 'Log in with Email'}
+                {isSubmitting ? 'Logging in...' : 'Log in with Email'}
               </Text>
             </Pressable>
 
@@ -93,11 +123,12 @@ export default function LoginScreen() {
   );
 }
 
-// 燥 Completely new styles to match your design
+// ⚠️ Note: I updated `styles.input` to be a generic container style since
+// the new `CustomInput` component handles its own internal styling.
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: '#f4f4f5', // Light gray background
+    backgroundColor: '#f4f4f5', 
   },
   container: {
     flexGrow: 1,
@@ -119,7 +150,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 5, // for Android shadow
+    elevation: 5,
   },
   title: {
     fontSize: 22,
@@ -127,18 +158,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
+  // The CustomInput component now manages the input styling
   input: {
-    height: 48,
-    borderColor: '#ddd',
-    borderWidth: 1,
+    // This style is now technically redundant here but kept to avoid breaking
+    // any code that might rely on it outside of the refactored parts.
     marginBottom: 16,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    fontSize: 16,
-    backgroundColor: '#fff',
   },
   button: {
-    backgroundColor: '#e63946', // Red color from your image
+    backgroundColor: '#e63946', 
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
@@ -160,7 +187,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   linkTextAction: {
-    color: '#e63946', // Red color
+    color: '#e63946', 
     fontWeight: 'bold',
   },
 });

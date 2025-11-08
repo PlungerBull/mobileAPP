@@ -31,13 +31,15 @@ export const PrimaryButton = ({ onPress, title, disabled = false, style }: Prima
 );
 
 interface CustomInputProps extends TextInputProps { 
-    label: string; 
+  label: string; 
+  errorText?: string; 
 }
 
-export const CustomInput = ({ label, ...props }: CustomInputProps) => (
+export const CustomInput = ({ label, errorText, ...props }: CustomInputProps) => (
   <View style={modalStyles.inputContainer}>
     <Text style={modalStyles.inputLabel}>{label}</Text>
-    <TextInput style={modalStyles.input} {...props} />
+    <TextInput style={[modalStyles.input, errorText && modalStyles.inputError]} {...props} />
+    {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>} 
   </View>
 );
 
@@ -80,6 +82,9 @@ export const modalStyles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#f9f9f9',
   },
+  inputError: { // 👈 NEW STYLE
+    borderColor: '#e63946', // Red border for error
+  },
   button: {
     backgroundColor: '#6200EE',
     paddingVertical: 14,
@@ -114,5 +119,10 @@ export const modalStyles = StyleSheet.create({
   setMainText: {
     color: '#007AFF',
     fontSize: 15,
+  },
+  errorText: { 
+    color: '#e63946', 
+    fontSize: 12, 
+    marginTop: 5 
   }
 });

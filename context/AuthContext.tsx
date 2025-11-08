@@ -1,34 +1,36 @@
-import React, { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import React, { useEffect, ReactNode } from 'react';
+import { create } from 'zustand'; // 👈 NEW: Import create from zustand
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase'; // Use the alias from tsconfig.json
+import { supabase } from '@/lib/supabase';
 
-// Define the shape of the context
+// Define the shape of the store's state and actions
 interface AuthContextType {
   session: Session | null;
   loading: boolean;
+  setSession: (session: Session | null) => void; // 👈 NEW: Action to update session
+  setLoading: (loading: boolean) => void;       // 👈 NEW: Action to update loading
 }
 
-// Create the context with a default value
-const AuthContext = createContext<AuthContextType>({
+// Create the Zustand store
+const useAuthStore = create<AuthContextType>((set) => ({
   session: null,
   loading: true,
-});
+  setSession: (session) => set({ session }),
+  setLoading: (loading) => set({ loading }),
+}));
 
-// Create the provider component
+// Create the provider component - it now just initializes the listeners
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { setSession, setLoading } = useAuthStore.getState();
 
   useEffect(() => {
-    // 1. Get current session
-    // This logic is moved from your original app/index.tsx
+    // 1. Get current session and set initial state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setLoading(false);
     });
 
-    // 2. Listen for auth changes
-    // This logic is also from app/index.tsx
+    // 2. Listen for auth changes and update the store
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -36,21 +38,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [setSession, setLoading]); // Depend on setters (safe with Zustand)
 
-  const value = {
-    session,
-    loading,
-  };
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  // The provider itself no longer needs to pass a value, as the components
+  // will connect directly to the store via the useAuth hook.
+  return <>{children}</>;
 }
-
-// Create a custom hook to use the AuthContext
+// Create a custom hook to use the AuthStore (keeping the existing hook name)
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+  // Select the state you need. This is the key performance feature of Zustand.
+  return useAuthStore(state => ({
+    session: state.session,
+    loading: state.loading,
+  }));
 }

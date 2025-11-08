@@ -8,14 +8,15 @@ import {
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AddTransactionSchema, AddTransactionFormValues } from '@/types/FormSchemas';
 
 import { 
   useCreateTransaction, 
   useAccounts, 
-  useCategoriesAndGroups 
+  useCategoriesAndGroups,
+  useMainCurrency // ✅ NEW: Import the main currency hook
 } from '@/hooks/useManagementData'; 
 
 import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/components/ModalCommon';
@@ -27,6 +28,7 @@ export default function AddTransactionModal() {
   // --- Data Fetching ---
   const { data: accounts = [], isLoading: loadingAccounts } = useAccounts();
   const { data: allCategories = [], isLoading: loadingCategories } = useCategoriesAndGroups();
+  const { data: mainCurrency, isLoading: loadingMainCurrency } = useMainCurrency(); // ✅ NEW
 
   // --- Mutation ---
   const { mutate: createTransaction, isPending: isCreating } = useCreateTransaction();
@@ -43,13 +45,22 @@ export default function AddTransactionModal() {
       amount: '',
       accountId: undefined,
       categoryId: undefined,
+      exchangeRate: '', // ✅ NEW: Default to empty string
     }
   });
 
-  const isLoading = loadingAccounts || loadingCategories;
+  // ✅ NEW: Watch the selected account to determine if we need the exchange rate field
+  const selectedAccountId = useWatch({ control, name: 'accountId' });
+  const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+  
+  // ✅ NEW: Determine if exchange rate is needed
+  const needsExchangeRate = mainCurrency && selectedAccount 
+    ? selectedAccount.currency !== mainCurrency.code 
+    : false;
+
+  const isLoading = loadingAccounts || loadingCategories || loadingMainCurrency;
 
   const categoryPickerItems = useMemo(() => {
-    // ... (This logic remains unchanged)
     const groups: Category[] = allCategories.filter(c => c.parent_id === null);
     const categories: Category[] = allCategories.filter(c => c.parent_id !== null);
     const items = [];
@@ -70,20 +81,38 @@ export default function AddTransactionModal() {
 
   const handleSaveTransaction = (data: AddTransactionFormValues) => {
     const parsedAmount = parseFloat(data.amount);
-    const selectedAccount = accounts.find(a => a.id === data.accountId);
     
     if (!selectedAccount) {
       Alert.alert('Error', 'Invalid account selected.');
       return;
     }
+
+    if (!mainCurrency) {
+      Alert.alert('Error', 'No main currency set. Please set a main currency first.');
+      return;
+    }
+    
+    // ✅ FIXED: Proper exchange rate handling
+    let exchangeRate = 1;
+    let amountHome = parsedAmount;
+    
+    if (needsExchangeRate) {
+      // If currencies differ, exchange rate is REQUIRED
+      if (!data.exchangeRate || data.exchangeRate.trim() === '') {
+        Alert.alert('Error', 'Exchange rate is required for different currencies.');
+        return;
+      }
+      exchangeRate = parseFloat(data.exchangeRate);
+      amountHome = parsedAmount * exchangeRate;
+    }
     
     const transactionData: NewTransaction = {
       date: new Date().toISOString(),
       description: data.description.trim(),
-      amount_home: parsedAmount,
+      amount_home: amountHome, // ✅ FIXED: Calculated correctly
       amount_original: parsedAmount,
       currency_original: selectedAccount.currency,
-      exchange_rate: 1, // 🚨 REMINDER: This still violates Rule 6.5, but we'll fix that after the file structure.
+      exchange_rate: exchangeRate, // ✅ FIXED: User-provided or 1
       account_id: data.accountId,
       category_id: data.categoryId,
     };
@@ -158,6 +187,30 @@ export default function AddTransactionModal() {
                 </CustomPicker>
               )}
             />
+
+            {/* ✅ NEW: Conditionally show exchange rate field */}
+            {needsExchangeRate && (
+              <View>
+                <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>
+                  Converting from {selectedAccount?.currency} to {mainCurrency?.code}
+                </Text>
+                <Controller
+                  control={control}
+                  name="exchangeRate"
+                  render={({ field: { onChange, onBlur, value } }) => (
+                    <CustomInput 
+                      label={`Exchange Rate (${selectedAccount?.currency} to ${mainCurrency?.code})`}
+                      placeholder="e.g. 1.25"
+                      value={value || ''}
+                      onChangeText={onChange}
+                      onBlur={onBlur}
+                      keyboardType="decimal-pad"
+                      errorText={errors.exchangeRate?.message}
+                    />
+                  )}
+                />
+              </View>
+            )}
 
             <Controller
               control={control}

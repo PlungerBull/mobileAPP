@@ -1,5 +1,5 @@
 import React, { useEffect, ReactNode } from 'react';
-import { create } from 'zustand'; // 👈 NEW: Import create from zustand
+import { create } from 'zustand';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
@@ -7,8 +7,8 @@ import { supabase } from '@/lib/supabase';
 interface AuthContextType {
   session: Session | null;
   loading: boolean;
-  setSession: (session: Session | null) => void; // 👈 NEW: Action to update session
-  setLoading: (loading: boolean) => void;       // 👈 NEW: Action to update loading
+  setSession: (session: Session | null) => void;
+  setLoading: (loading: boolean) => void;
 }
 
 // Create the Zustand store
@@ -21,9 +21,10 @@ const useAuthStore = create<AuthContextType>((set) => ({
 
 // Create the provider component - it now just initializes the listeners
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const { setSession, setLoading } = useAuthStore.getState();
-
   useEffect(() => {
+    // ✅ FIX: Get the setters directly inside useEffect, not from getState()
+    const { setSession, setLoading } = useAuthStore.getState();
+
     // 1. Get current session and set initial state
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -38,16 +39,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [setSession, setLoading]); // Depend on setters (safe with Zustand)
+  }, []); // ✅ FIX: Empty dependency array (run once on mount)
 
   // The provider itself no longer needs to pass a value, as the components
   // will connect directly to the store via the useAuth hook.
   return <>{children}</>;
 }
+
 // Create a custom hook to use the AuthStore (keeping the existing hook name)
 export function useAuth() {
   // Select the state you need. This is the key performance feature of Zustand.
-  return useAuthStore(state => ({
+  return useAuthStore((state) => ({
     session: state.session,
     loading: state.loading,
   }));

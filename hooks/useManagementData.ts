@@ -310,3 +310,22 @@ export function useUpdateCurrency() {
         },
     });
 }
+
+/**
+ * Hook to get the user's main currency.
+ * Returns the currency marked as is_main: true
+ */
+export function useMainCurrency() {
+    return useQuery<Currency | null, Error>({
+      queryKey: [QUERY_KEYS.CURRENCIES, 'main'],
+      queryFn: async () => {
+        const { data, error } = await ManagementRepository.getCurrencies();
+        if (error) throw error;
+        
+        const currencies = data as Currency[];
+        const mainCurrency = currencies.find(c => c.is_main);
+        
+        return mainCurrency || null;
+      },
+    });
+  }

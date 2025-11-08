@@ -46,13 +46,17 @@ export const AddCurrencySchema = z.object({
 });
 export type AddCurrencyFormValues = z.infer<typeof AddCurrencySchema>;
 
-// For the 'Add Transaction' modal
+// ✅ UPDATED: For the 'Add Transaction' modal (with optional exchange rate)
 export const AddTransactionSchema = z.object({
   description: z.string().min(1, 'Description is required'),
-  // Keep amount as string for RHF keyboardType="numeric"
   amount: z.string().regex(/^\-?(\d+)(\.\d{1,2})?$/, 'Invalid amount format'), 
   accountId: z.string().uuid('Account is required'),
   categoryId: z.string().uuid('Category is required'),
+  // ✅ NEW: Optional exchange rate field (only required when currencies differ)
+  exchangeRate: z.string()
+    .regex(/^(\d+)(\.\d+)?$/, 'Invalid exchange rate')
+    .optional()
+    .or(z.literal('')), // Allow empty string for same-currency transactions
 });
 export type AddTransactionFormValues = z.infer<typeof AddTransactionSchema>;
 
@@ -60,13 +64,13 @@ export type AddTransactionFormValues = z.infer<typeof AddTransactionSchema>;
 // --- Management "Edit" Schemas ---
 
 // For the 'edit-account.tsx' modal
-export const EditAccountSchema = AddAccountSchema; // Same rules as adding
+export const EditAccountSchema = AddAccountSchema;
 export type EditAccountFormValues = z.infer<typeof EditAccountSchema>;
 
 // For the 'edit-category.tsx' modal
-export const EditCategorySchema = AddCategorySchema; // Same rules as adding
+export const EditCategorySchema = AddCategorySchema;
 export type EditCategoryFormValues = z.infer<typeof EditCategorySchema>;
 
 // For the 'edit-currency.tsx' modal
-export const EditCurrencySchema = AddCurrencySchema; // Same rules as adding
+export const EditCurrencySchema = AddCurrencySchema;
 export type EditCurrencyFormValues = z.infer<typeof EditCurrencySchema>;

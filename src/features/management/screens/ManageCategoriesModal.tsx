@@ -79,17 +79,12 @@ const CategoryItem = ({ category, onDelete, onEdit }: CategoryItemProps) => {
 
 export default function ManageCategoriesModal() {
   const router = useRouter();
-  const [searchText, setSearchText] = useState('');
   const [newCategoryName, setNewCategoryName] = useState('');
 
   const { data: categories = [], isLoading } = useCategories();
   const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
   const { mutate: deleteCategory } = useDeleteCategory();
   const { mutate: updateCategory } = useUpdateCategory();
-
-  const filteredCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(searchText.toLowerCase())
-  );
 
   const handleAdd = () => {
     if (!newCategoryName.trim()) return;
@@ -129,45 +124,16 @@ export default function ManageCategoriesModal() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'Manage Categories',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Ionicons name="chevron-back" size={28} color="#000" />
-            </Pressable>
-          ),
-          headerRight: () => <View />,
-        }}
-      />
-
-      {/* Search/Filter Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search or add category..."
-          value={searchText}
-          onChangeText={setSearchText}
-          autoCapitalize="words"
-        />
-        {searchText.length > 0 && (
-          <Pressable onPress={() => setSearchText('')} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-        )}
-      </View>
-
       {/* Categories List */}
       <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
         {isLoading ? (
           <ActivityIndicator size="large" color="#f39c12" style={styles.loader} />
-        ) : filteredCategories.length === 0 ? (
+        ) : categories.length === 0 ? (
           <Text style={styles.emptyText}>
-            {searchText ? 'No categories found' : 'No categories yet'}
+            No categories yet
           </Text>
         ) : (
-          filteredCategories.map((category) => (
+          categories.map((category) => (
             <CategoryItem
               key={category.id}
               category={category}

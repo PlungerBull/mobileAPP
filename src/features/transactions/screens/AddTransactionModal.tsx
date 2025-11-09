@@ -125,13 +125,6 @@ export default function AddTransactionModal() {
 
   return (
     <View style={modalStyles.safeArea}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Add Transaction',
-          headerLeft: () => <View />, 
-          headerRight: CloseButton,
-        }} 
-      />
       
       <ScrollView contentContainerStyle={modalStyles.container}>
         {isLoading ? (

@@ -1,39 +1,62 @@
-import { Stack } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
+import { Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { CloseButton } from '@/src/components/ModalCommon';
 
-// This Stack is dedicated to defining how the screens in the (modals) group
-// should be presented when navigated to from the main tabs.
+// Custom back button component to match your modal's style
+const CustomBackButton = () => {
+  const router = useRouter();
+  return (
+    <Pressable onPress={() => router.back()} hitSlop={10}>
+      <Ionicons name="chevron-back" size={28} color="#000" />
+    </Pressable>
+  );
+};
+
 export default function ModalsLayout() {
   return (
     <Stack>
-      {/* Set the screen options for all screens in this group */}
+      {/* This is now the single source of truth for modal headers.
+        We've copied the header settings from your component files here.
+      */}
       <Stack.Screen 
         name="manage-accounts" 
         options={{ 
-          headerShown: false, 
-          presentation: 'modal', // Use native modal presentation for iOS
+          presentation: 'modal',
+          headerShown: true, // Show the header
+          title: 'Manage Accounts', // Set the title
+          headerLeft: CustomBackButton, // Add the back button
+          headerRight: () => <View />,
         }} 
       />
        <Stack.Screen
         name="manage-categories"
         options={{
-          headerShown: true,
           presentation: 'modal',
+          headerShown: true,
           title: 'Manage Categories',
+          headerLeft: CustomBackButton,
+          headerRight: () => <View />,
         }}
       />
        <Stack.Screen 
         name="manage-currencies" 
         options={{ 
-          headerShown: false, 
           presentation: 'modal', 
+          headerShown: true,
+          title: 'Manage Currencies',
+          headerLeft: CustomBackButton,
+          headerRight: () => <View />,
         }} 
       />
-       {/* ✅ NEW: Add the new transaction modal screen */}
        <Stack.Screen 
         name="add-transaction" 
         options={{ 
-          headerShown: false, 
           presentation: 'modal', 
+          headerShown: true, // Use custom header
+          title: 'Add Transaction',
+          headerLeft: () => <View />, // No back button
+          headerRight: CloseButton, // Use the 'X' button
         }} 
       />
     </Stack>

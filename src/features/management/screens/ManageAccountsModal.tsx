@@ -84,7 +84,6 @@ const AccountItem = ({ account, onDelete, onEdit }: AccountItemProps) => {
 
 export default function ManageAccountsModal() {
   const router = useRouter();
-  const [searchText, setSearchText] = useState('');
   const [newAccountName, setNewAccountName] = useState('');
   const [newAccountBalance, setNewAccountBalance] = useState('0');
   const [newAccountCurrency, setNewAccountCurrency] = useState('USD');
@@ -94,10 +93,6 @@ export default function ManageAccountsModal() {
   const { mutate: createAccount, isPending: isCreating } = useCreateAccount();
   const { mutate: deleteAccount } = useDeleteAccount();
   const { mutate: updateAccount } = useUpdateAccount();
-
-  const filteredAccounts = accounts.filter((acc) =>
-    acc.name.toLowerCase().includes(searchText.toLowerCase())
-  );
 
   const handleAdd = () => {
     if (!newAccountName.trim()) {
@@ -162,45 +157,17 @@ export default function ManageAccountsModal() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'Manage Accounts',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Ionicons name="chevron-back" size={28} color="#000" />
-            </Pressable>
-          ),
-          headerRight: () => <View />,
-        }}
-      />
-
-      {/* Search/Filter Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search accounts..."
-          value={searchText}
-          onChangeText={setSearchText}
-          autoCapitalize="words"
-        />
-        {searchText.length > 0 && (
-          <Pressable onPress={() => setSearchText('')} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-        )}
-      </View>
 
       {/* Accounts List */}
       <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
         {isLoading ? (
           <ActivityIndicator size="large" color="#f39c12" style={styles.loader} />
-        ) : filteredAccounts.length === 0 ? (
+        ) : accounts.length === 0 ? (
           <Text style={styles.emptyText}>
-            {searchText ? 'No accounts found' : 'No accounts yet'}
+            No accounts yet
           </Text>
         ) : (
-          filteredAccounts.map((account) => (
+          accounts.map((account) => (
             <AccountItem
               key={account.id}
               account={account}

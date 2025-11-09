@@ -101,7 +101,6 @@ const CurrencyItem = ({ currency, onDelete, onEdit, onSetMain }: CurrencyItemPro
 
 export default function ManageCurrenciesModal() {
   const router = useRouter();
-  const [searchText, setSearchText] = useState('');
   const [newCurrencyCode, setNewCurrencyCode] = useState('');
 
   const { data: currencies = [], isLoading } = useCurrencies();
@@ -109,10 +108,6 @@ export default function ManageCurrenciesModal() {
   const { mutate: deleteCurrency } = useDeleteCurrency();
   const { mutate: updateCurrency } = useUpdateCurrency();
   const { mutate: setMainCurrency } = useSetMainCurrency();
-
-  const filteredCurrencies = currencies.filter((curr) =>
-    curr.code.toLowerCase().includes(searchText.toLowerCase())
-  );
 
   const handleAdd = () => {
     const code = newCurrencyCode.toUpperCase().trim();
@@ -167,45 +162,17 @@ export default function ManageCurrenciesModal() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <Stack.Screen
-        options={{
-          headerShown: true,
-          title: 'Manage Currencies',
-          headerLeft: () => (
-            <Pressable onPress={() => router.back()} hitSlop={10}>
-              <Ionicons name="chevron-back" size={28} color="#000" />
-            </Pressable>
-          ),
-          headerRight: () => <View />,
-        }}
-      />
-
-      {/* Search/Filter Input */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search currencies..."
-          value={searchText}
-          onChangeText={setSearchText}
-          autoCapitalize="characters"
-        />
-        {searchText.length > 0 && (
-          <Pressable onPress={() => setSearchText('')} style={styles.cancelButton}>
-            <Text style={styles.cancelText}>Cancel</Text>
-          </Pressable>
-        )}
-      </View>
 
       {/* Currencies List */}
       <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
         {isLoading ? (
           <ActivityIndicator size="large" color="#f39c12" style={styles.loader} />
-        ) : filteredCurrencies.length === 0 ? (
+        ) : currencies.length === 0 ? (
           <Text style={styles.emptyText}>
-            {searchText ? 'No currencies found' : 'No currencies yet'}
+            No currencies yet
           </Text>
         ) : (
-          filteredCurrencies.map((currency) => (
+          currencies.map((currency) => (
             <CurrencyItem
               key={currency.code}
               currency={currency}

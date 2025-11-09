@@ -227,11 +227,12 @@ export default function AddTransactionModal() {
                 control={control}
                 name="categoryId"
                 render={({ field: { onChange, value } }) => (
-                  <View style={[styles.pickerContainer, errors.categoryId && styles.inputError]}>
+                  <View style={[styles.pickerContainer, errors.categoryId && styles.inputError]} pointerEvents="auto">
                     <Picker
                       selectedValue={value}
                       onValueChange={onChange}
                       style={styles.picker}
+                      enabled={true}
                     >
                       <Picker.Item label="Select category..." value={undefined} color="#999" />
                       {categoryPickerItems}
@@ -250,18 +251,19 @@ export default function AddTransactionModal() {
                 control={control}
                 name="accountId"
                 render={({ field: { onChange, value } }) => (
-                  <View style={[styles.pickerContainer, errors.accountId && styles.inputError]}>
+                  <View style={[styles.pickerContainer, errors.accountId && styles.inputError]} pointerEvents="auto">
                     <Picker
                       selectedValue={value}
                       onValueChange={onChange}
                       style={styles.picker}
+                      enabled={true}
                     >
                       <Picker.Item label="Select account..." value={undefined} color="#999" />
                       {accounts.map(account => (
-                        <Picker.Item 
-                          key={account.id} 
-                          label={`${account.name}`} 
-                          value={account.id} 
+                        <Picker.Item
+                          key={account.id}
+                          label={`${account.name}`}
+                          value={account.id}
                         />
                       ))}
                     </Picker>
@@ -323,6 +325,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+    zIndex: 999,
   },
   header: {
     flexDirection: 'row',
@@ -347,6 +350,7 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    zIndex: 0,
   },
   scrollContent: {
     padding: 20,
@@ -357,6 +361,7 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: 16,
+    zIndex: 1,
   },
   input: {
     height: 56,
@@ -390,11 +395,16 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#e5e5e5',
     borderRadius: 12,
-    overflow: 'hidden',
     backgroundColor: '#fff',
+    minHeight: 56,
+    zIndex: 1000,
+    elevation: 5,
   },
   picker: {
     height: 56,
+    width: '100%',
+    backgroundColor: '#fff',
+    opacity: 1,
   },
   helperText: {
     fontSize: 12,

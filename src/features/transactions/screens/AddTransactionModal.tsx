@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   View, 
   Text, 
@@ -8,13 +8,15 @@ import {
   StyleSheet,
   Pressable,
   TextInput,
+  TouchableOpacity,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { Picker } from '@react-native-picker/picker';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Ionicons } from '@expo/vector-icons';
 import { AddTransactionSchema, AddTransactionFormValues } from '@/src/types/FormSchemas';
+import { BottomSheetPicker } from '@/src/components/BottomSheetPicker';
+import { DatePickerModal } from '@/src/components/DatePickerModal';
 
 import {
   useCreateTransaction,
@@ -28,6 +30,13 @@ import { NewTransaction, CategoryRow as Category } from '@/src/types/supabase';
 export default function AddTransactionModal() {
   const router = useRouter();
 
+  // --- Local state for picker modals ---
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [showAccountPicker, setShowAccountPicker] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [note, setNote] = useState('');
+
   // --- Data Fetching ---
   const { data: accounts = [], isLoading: loadingAccounts } = useAccounts();
   const { data: allCategories = [], isLoading: loadingCategories } = useCategoriesAndGroups();
@@ -40,7 +49,9 @@ export default function AddTransactionModal() {
   const { 
     control, 
     handleSubmit, 
-    formState: { errors } 
+    formState: { errors },
+    setValue,
+    watch,
   } = useForm<AddTransactionFormValues>({
     resolver: zodResolver(AddTransactionSchema),
     defaultValues: {
@@ -52,9 +63,12 @@ export default function AddTransactionModal() {
     }
   });
 
-  // Watch the selected account to determine if we need the exchange rate field
-  const selectedAccountId = useWatch({ control, name: 'accountId' });
+  // Watch the selected values
+  const selectedAccountId = watch('accountId');
+  const selectedCategoryId = watch('categoryId');
+  
   const selectedAccount = accounts.find(a => a.id === selectedAccountId);
+  const selectedCategory = allCategories.find(c => c.id === selectedCategoryId);
   
   // Determine if exchange rate is needed
   const needsExchangeRate = mainCurrency && selectedAccount 
@@ -63,24 +77,38 @@ export default function AddTransactionModal() {
 
   const isLoading = loadingAccounts || loadingCategories || loadingMainCurrency;
 
-  const categoryPickerItems = useMemo(() => {
+  // --- Prepare picker options ---
+  const categoryOptions = useMemo(() => {
     const groups: Category[] = allCategories.filter(c => c.parent_id === null);
     const categories: Category[] = allCategories.filter(c => c.parent_id !== null);
-    const items = [];
+    
+    const options = [];
     for (const group of groups) {
-      items.push(<Picker.Item key={group.id} label={group.name} value={group.id} />);
+      options.push({ 
+        label: group.name, 
+        value: group.id, 
+        isGroup: true 
+      });
+      // Add sub-categories under this group
+      const subCategories = categories.filter(c => c.parent_id === group.id);
+      for (const cat of subCategories) {
+        options.push({ 
+          label: `  ${cat.name}`, 
+          value: cat.id,
+          isGroup: false
+        });
+      }
     }
-    for (const category of categories) {
-      items.push(
-        <Picker.Item 
-          key={category.id} 
-          label={`  — ${category.name}`} 
-          value={category.id} 
-        />
-      );
-    }
-    return items;
+    return options;
   }, [allCategories]);
+
+  const accountOptions = useMemo(() => {
+    return accounts.map(account => ({
+      label: `${account.name} (${account.currency})`,
+      value: account.id,
+      isGroup: false,
+    }));
+  }, [accounts]);
 
   const handleSaveTransaction = (data: AddTransactionFormValues) => {
     const parsedAmount = parseFloat(data.amount);
@@ -108,7 +136,7 @@ export default function AddTransactionModal() {
     }
     
     const transactionData: NewTransaction = {
-      date: new Date().toISOString(),
+      date: selectedDate.toISOString(),
       description: data.description.trim(),
       amount_home: amountHome,
       amount_original: parsedAmount,
@@ -175,18 +203,21 @@ export default function AddTransactionModal() {
               )}
             </View>
 
-            {/* Date (Currently shows today's date - you can make this editable later) */}
+            {/* Date - Now Clickable */}
             <View style={styles.fieldContainer}>
-              <View style={styles.dateContainer}>
+              <TouchableOpacity
+                style={styles.dateContainer}
+                onPress={() => setShowDatePicker(true)}
+              >
                 <Text style={styles.dateText}>
-                  {new Date().toLocaleDateString('en-US', { 
+                  {selectedDate.toLocaleDateString('en-US', { 
                     month: '2-digit', 
                     day: '2-digit', 
                     year: 'numeric' 
                   })}
                 </Text>
                 <Ionicons name="calendar-outline" size={20} color="#666" />
-              </View>
+              </TouchableOpacity>
             </View>
 
             {/* Description */}
@@ -211,65 +242,47 @@ export default function AddTransactionModal() {
               )}
             </View>
 
-            {/* Note (Optional) - Placeholder for future feature */}
+            {/* Note (Now Editable) */}
             <View style={styles.fieldContainer}>
               <TextInput
                 style={styles.input}
                 placeholder="Note (Optional)"
                 placeholderTextColor="#999"
-                editable={false}
+                value={note}
+                onChangeText={setNote}
+                multiline
+                numberOfLines={2}
+                textAlignVertical="top"
               />
             </View>
 
-            {/* Category Picker */}
+            {/* Category Picker - Custom TouchableOpacity */}
             <View style={styles.fieldContainer}>
-              <Controller
-                control={control}
-                name="categoryId"
-                render={({ field: { onChange, value } }) => (
-                  <View style={[styles.pickerContainer, errors.categoryId && styles.inputError]} pointerEvents="auto">
-                    <Picker
-                      selectedValue={value}
-                      onValueChange={onChange}
-                      style={styles.picker}
-                      enabled={true}
-                    >
-                      <Picker.Item label="Select category..." value={undefined} color="#999" />
-                      {categoryPickerItems}
-                    </Picker>
-                  </View>
-                )}
-              />
+              <TouchableOpacity
+                style={[styles.pickerButton, errors.categoryId && styles.inputError]}
+                onPress={() => setShowCategoryPicker(true)}
+              >
+                <Text style={[styles.pickerButtonText, !selectedCategory && styles.placeholderText]}>
+                  {selectedCategory ? selectedCategory.name : 'Select category...'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#666" />
+              </TouchableOpacity>
               {errors.categoryId && (
                 <Text style={styles.errorText}>{errors.categoryId.message}</Text>
               )}
             </View>
 
-            {/* Account Picker */}
+            {/* Account Picker - Custom TouchableOpacity */}
             <View style={styles.fieldContainer}>
-              <Controller
-                control={control}
-                name="accountId"
-                render={({ field: { onChange, value } }) => (
-                  <View style={[styles.pickerContainer, errors.accountId && styles.inputError]} pointerEvents="auto">
-                    <Picker
-                      selectedValue={value}
-                      onValueChange={onChange}
-                      style={styles.picker}
-                      enabled={true}
-                    >
-                      <Picker.Item label="Select account..." value={undefined} color="#999" />
-                      {accounts.map(account => (
-                        <Picker.Item
-                          key={account.id}
-                          label={`${account.name}`}
-                          value={account.id}
-                        />
-                      ))}
-                    </Picker>
-                  </View>
-                )}
-              />
+              <TouchableOpacity
+                style={[styles.pickerButton, errors.accountId && styles.inputError]}
+                onPress={() => setShowAccountPicker(true)}
+              >
+                <Text style={[styles.pickerButtonText, !selectedAccount && styles.placeholderText]}>
+                  {selectedAccount ? selectedAccount.name : 'Select account...'}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#666" />
+              </TouchableOpacity>
               {errors.accountId && (
                 <Text style={styles.errorText}>{errors.accountId.message}</Text>
               )}
@@ -317,6 +330,35 @@ export default function AddTransactionModal() {
           </>
         )}
       </ScrollView>
+
+      {/* Category Bottom Sheet Picker */}
+      <BottomSheetPicker
+        visible={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        options={categoryOptions}
+        selectedValue={selectedCategoryId}
+        onValueChange={(value) => setValue('categoryId', value)}
+        title="Select Category"
+      />
+
+      {/* Account Bottom Sheet Picker */}
+      <BottomSheetPicker
+        visible={showAccountPicker}
+        onClose={() => setShowAccountPicker(false)}
+        options={accountOptions}
+        selectedValue={selectedAccountId}
+        onValueChange={(value) => setValue('accountId', value)}
+        title="Select Account"
+      />
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        visible={showDatePicker}
+        onClose={() => setShowDatePicker(false)}
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        title="Select Date"
+      />
     </View>
   );
 }
@@ -325,7 +367,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-    zIndex: 999,
   },
   header: {
     flexDirection: 'row',
@@ -350,7 +391,6 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-    zIndex: 0,
   },
   scrollContent: {
     padding: 20,
@@ -361,7 +401,6 @@ const styles = StyleSheet.create({
   },
   fieldContainer: {
     marginBottom: 16,
-    zIndex: 1,
   },
   input: {
     height: 56,
@@ -391,20 +430,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#000',
   },
-  pickerContainer: {
+  pickerButton: {
+    height: 56,
     borderWidth: 1,
     borderColor: '#e5e5e5',
     borderRadius: 12,
+    paddingHorizontal: 16,
     backgroundColor: '#fff',
-    minHeight: 56,
-    zIndex: 1000,
-    elevation: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  picker: {
-    height: 56,
-    width: '100%',
-    backgroundColor: '#fff',
-    opacity: 1,
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  placeholderText: {
+    color: '#999',
   },
   helperText: {
     fontSize: 12,

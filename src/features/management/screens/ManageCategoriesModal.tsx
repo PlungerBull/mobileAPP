@@ -1,120 +1,310 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  View, Text, ScrollView, Alert, ActivityIndicator
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  Pressable,
+  Alert,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import {
-  useCategories, useCreateCategory, useDeleteCategory
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useUpdateCategory,
 } from '@/src/hooks/useManagementData';
+import { CategoryRow } from '@/src/types/supabase';
 
-import { useForm, Controller } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AddCategorySchema, AddCategoryFormValues } from '@/src/types/FormSchemas';
+interface CategoryItemProps {
+  category: CategoryRow;
+  onDelete: (id: string) => void;
+  onEdit: (id: string, newName: string) => void;
+}
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/src/components/ModalCommon';
-import { CategoryRow } from '@/src/components/list-items/CategoryRow';
+const CategoryItem = ({ category, onDelete, onEdit }: CategoryItemProps) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editValue, setEditValue] = useState(category.name);
 
-export default function ManageCategoriesModal() {
-  const router = useRouter();
-  const { data: categories = [], isLoading: loadingCategories } = useCategories();
-  const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
-  const { mutate: deleteCategory } = useDeleteCategory();
-
-  const { control, handleSubmit, reset, formState: { errors } } = useForm<AddCategoryFormValues>({
-    resolver: zodResolver(AddCategorySchema),
-    defaultValues: {
-      name: '',
+  const handleSave = () => {
+    if (editValue.trim() && editValue.trim() !== category.name) {
+      onEdit(category.id, editValue.trim());
     }
-  });
-
-  const handleAddCategory = (data: AddCategoryFormValues) => {
-    createCategory({ name: data.name.trim(), parentId: null }, {
-      onSuccess: () => reset(),
-      onError: (e) => Alert.alert('Creation Failed', e.message),
-    });
-  };
-  
-  const handleEdit = (id: string) => {
-    const categoryToEdit = categories.find(c => c.id === id);
-    if (categoryToEdit) {
-      router.push({
-        pathname: '/edit-category',
-        params: { item: JSON.stringify(categoryToEdit) }
-      });
-    }
+    setIsEditing(false);
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = () => {
     Alert.alert(
-      "Delete Category", "Are you sure? This cannot be undone.",
+      'Delete Category',
+      `Are you sure you want to delete "${category.name}"?`,
       [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Delete", 
-          style: "destructive",
-          onPress: () => deleteCategory({ id }, {
-            onError: (e) => Alert.alert('Delete Failed', e.message)
-          })
-        }
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => onDelete(category.id),
+        },
       ]
     );
   };
 
   return (
-    <View style={modalStyles.safeArea}>
-      <Stack.Screen 
-        options={{ 
-          title: 'Manage Categories',
-          headerLeft: () => <View />, 
-          headerRight: CloseButton, 
-        }} 
-      />
-      
-      <ScrollView contentContainerStyle={modalStyles.container}>
-        
-        <Text style={modalStyles.listTitle}>Existing Categories</Text>
-        {loadingCategories ? (
-          <ActivityIndicator size="small" color="#e63946" />
-        ) : (
-          <View>
-            {categories.map(cat => (
-              <CategoryRow 
-                key={cat.id} 
-                category={cat} 
-                onEdit={handleEdit} 
-                onDelete={handleDelete}
-              />
-            ))}
-            {categories.length === 0 && <Text style={modalStyles.emptyText}>No sub-categories set up yet.</Text>}
-          </View>
-        )}
-        
-        <View style={modalStyles.separator} />
-
-        <Text style={modalStyles.addTitle}>Add New</Text>
-        
-        <Controller
-          control={control}
-          name="name"
-          render={({ field: { onChange, onBlur, value } }) => (
-            <CustomInput 
-              label="Name"
-              placeholder="e.g. Groceries"
-              value={value}
-              onChangeText={onChange}
-              onBlur={onBlur}
-              autoCapitalize="words"
-              errorText={errors.name?.message}
-            />
-          )}
+    <View style={styles.categoryItem}>
+      {isEditing ? (
+        <TextInput
+          style={styles.editInput}
+          value={editValue}
+          onChangeText={setEditValue}
+          onBlur={handleSave}
+          onSubmitEditing={handleSave}
+          autoFocus
+          returnKeyType="done"
         />
-
-        <PrimaryButton 
-          title={isCreating ? 'Adding...' : 'Add'}
-          onPress={handleSubmit(handleAddCategory)}
-          disabled={isCreating}
-        />
-      </ScrollView>
+      ) : (
+        <Pressable onPress={() => setIsEditing(true)} style={styles.categoryTextContainer}>
+          <Text style={styles.categoryText}>{category.name}</Text>
+        </Pressable>
+      )}
+      <Pressable onPress={handleDelete} hitSlop={10}>
+        <Ionicons name="trash-outline" size={22} color="#999" />
+      </Pressable>
     </View>
   );
+};
+
+export default function ManageCategoriesModal() {
+  const router = useRouter();
+  const [searchText, setSearchText] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const { data: categories = [], isLoading } = useCategories();
+  const { mutate: createCategory, isPending: isCreating } = useCreateCategory();
+  const { mutate: deleteCategory } = useDeleteCategory();
+  const { mutate: updateCategory } = useUpdateCategory();
+
+  const filteredCategories = categories.filter((cat) =>
+    cat.name.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const handleAdd = () => {
+    if (!newCategoryName.trim()) return;
+
+    createCategory(
+      { name: newCategoryName.trim(), parentId: null },
+      {
+        onSuccess: () => setNewCategoryName(''),
+        onError: (e) => Alert.alert('Error', e.message),
+      }
+    );
+  };
+
+  const handleDelete = (id: string) => {
+    deleteCategory(
+      { id },
+      {
+        onError: (e) => Alert.alert('Error', e.message),
+      }
+    );
+  };
+
+  const handleEdit = (id: string, newName: string) => {
+    updateCategory(
+      {
+        id,
+        updates: { name: newName, parent_id: null },
+      },
+      {
+        onError: (e) => Alert.alert('Error', e.message),
+      }
+    );
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: 'Manage Categories',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} hitSlop={10}>
+              <Ionicons name="chevron-back" size={28} color="#000" />
+            </Pressable>
+          ),
+          headerRight: () => <View />,
+        }}
+      />
+
+      {/* Search/Filter Input */}
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search or add category..."
+          value={searchText}
+          onChangeText={setSearchText}
+          autoCapitalize="words"
+        />
+        {searchText.length > 0 && (
+          <Pressable onPress={() => setSearchText('')} style={styles.cancelButton}>
+            <Text style={styles.cancelText}>Cancel</Text>
+          </Pressable>
+        )}
+      </View>
+
+      {/* Categories List */}
+      <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
+        {isLoading ? (
+          <ActivityIndicator size="large" color="#f39c12" style={styles.loader} />
+        ) : filteredCategories.length === 0 ? (
+          <Text style={styles.emptyText}>
+            {searchText ? 'No categories found' : 'No categories yet'}
+          </Text>
+        ) : (
+          filteredCategories.map((category) => (
+            <CategoryItem
+              key={category.id}
+              category={category}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+            />
+          ))
+        )}
+      </ScrollView>
+
+      {/* Add New Category */}
+      <View style={styles.addContainer}>
+        <TextInput
+          style={styles.addInput}
+          placeholder="New category name"
+          value={newCategoryName}
+          onChangeText={setNewCategoryName}
+          autoCapitalize="words"
+          returnKeyType="done"
+          onSubmitEditing={handleAdd}
+        />
+        <Pressable
+          style={[styles.addButton, isCreating && styles.addButtonDisabled]}
+          onPress={handleAdd}
+          disabled={isCreating || !newCategoryName.trim()}
+        >
+          {isCreating ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text style={styles.addButtonText}>Add</Text>
+          )}
+        </Pressable>
+      </View>
+    </KeyboardAvoidingView>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 2,
+    borderColor: '#1a1a1a',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+  },
+  cancelButton: {
+    marginLeft: 10,
+  },
+  cancelText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  listContainer: {
+    flex: 1,
+  },
+  listContent: {
+    paddingVertical: 10,
+  },
+  categoryItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#e5e5e5',
+  },
+  categoryTextContainer: {
+    flex: 1,
+  },
+  categoryText: {
+    fontSize: 17,
+    color: '#1a1a1a',
+  },
+  editInput: {
+    flex: 1,
+    fontSize: 17,
+    color: '#1a1a1a',
+    paddingVertical: 0,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 16,
+    marginTop: 40,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  addContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e5e5',
+    backgroundColor: '#fff',
+  },
+  addInput: {
+    flex: 1,
+    height: 48,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    fontSize: 16,
+    marginRight: 10,
+  },
+  addButton: {
+    backgroundColor: '#f39c12',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 80,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addButtonDisabled: {
+    opacity: 0.6,
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

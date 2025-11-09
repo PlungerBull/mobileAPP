@@ -13,12 +13,13 @@ export default function ModalsLayout() {
           presentation: 'modal', // Use native modal presentation for iOS
         }} 
       />
-       <Stack.Screen 
-        name="manage-categories" 
-        options={{ 
-          headerShown: false, 
-          presentation: 'modal', 
-        }} 
+       <Stack.Screen
+        name="manage-categories"
+        options={{
+          headerShown: true,
+          presentation: 'modal',
+          title: 'Manage Categories',
+        }}
       />
        <Stack.Screen 
         name="manage-currencies" 
@@ -26,18 +27,6 @@ export default function ModalsLayout() {
           headerShown: false, 
           presentation: 'modal', 
         }} 
-      />
-      <Stack.Screen 
-        name="edit-account" 
-        options={{ headerShown: false, presentation: 'modal' }} 
-      />
-       <Stack.Screen 
-        name="edit-category" 
-        options={{ headerShown: false, presentation: 'modal' }} 
-      />
-       <Stack.Screen 
-        name="edit-currency" 
-        options={{ headerShown: false, presentation: 'modal' }} 
       />
        {/* ✅ NEW: Add the new transaction modal screen */}
        <Stack.Screen 

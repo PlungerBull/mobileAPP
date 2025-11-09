@@ -1,9 +1,9 @@
-// types/ApiArgs.ts (Recommended Clean Content)
+// types/ApiArgs.ts
 import { 
   AccountRow, 
   CategoryRow, 
   CurrencyRow 
-} from '@/types/supabase'; // Import the row types
+} from '@/types/supabase'; 
 
 // --- API Argument Interfaces (Inputs ONLY) ---
 export interface CreateCategoryArgs {
@@ -17,13 +17,27 @@ export interface CreateAccountArgs {
   currencyCode: string;
 }
 
+export interface CreateCurrencyArgs { // ✅ ADDED: The missing type
+  code: string;
+}
+
+// ✅ NEW: Args for the atomic transfer RPC (as required by README)
+export interface CreateTransferArgs {
+  date: string;
+  description: string;
+  amount: number; // The positive amount being transferred
+  from_account_id: string; // Account to debit (will become negative transaction)
+  to_account_id: string;   // Account to credit (will become positive transaction)
+  category_id: string;     // Assumes a transfer category exists
+}
+
 // Universal standardized response type for all services/repositories
 export type ServiceResponse<T = any> = {
   data: T | null;
   error: Error | null;
 };
 
-// --- ✅ NEW: Arguments for Delete/Update mutations ---
+// --- Arguments for Delete/Update mutations ---
 export interface DeleteByIdArgs {
   id: string;
 }
@@ -36,8 +50,7 @@ export interface SetMainCurrencyArgs {
   code: string;
 }
 
-// --- ✅ NEW: Arguments for Edit/Update mutations ---
-// We pass the identifier (id/code) and the partial data to update
+// --- Arguments for Edit/Update mutations ---
 export interface UpdateAccountArgs {
   id: string;
   updates: Partial<Omit<AccountRow, 'id' | 'user_id' | 'created_at'>>;
@@ -49,7 +62,6 @@ export interface UpdateCategoryArgs {
 }
 
 export interface UpdateCurrencyArgs {
-  code: string; // This is the key to find the row
-  // ✅ FIX: Removed 'code' from Omit<> so we can update it
+  code: string; 
   updates: Partial<Omit<CurrencyRow, 'id' | 'user_id' | 'created_at'>>; 
 }

@@ -1,3 +1,5 @@
+// hooks/useManagementData.ts
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ManagementRepository } from '@/services/ManagementRepository'; 
 
@@ -5,11 +7,13 @@ import { ManagementRepository } from '@/services/ManagementRepository';
 import { 
     AccountRow, CategoryRow, CurrencyRow, TransactionRow, NewTransaction
 } from '@/types/supabase';
-// ✅ Import argument types and ServiceResponse utility from the argument/utility file
+// ✅ FIXED & NEW: Import all argument types from the canonical file
 import { 
     ServiceResponse, 
     CreateAccountArgs, 
     CreateCategoryArgs,
+    CreateCurrencyArgs, // 👈 ADDED HERE (Now consistent)
+    CreateTransferArgs, // 👈 NEW: Argument type for transfer mutation
     DeleteByIdArgs,
     DeleteByCodeArgs,
     SetMainCurrencyArgs,
@@ -24,14 +28,6 @@ type Category = CategoryRow;
 type Currency = CurrencyRow;
 type Transaction = TransactionRow;
 type NewTransactionInsert = NewTransaction;
-
-// --------------------------------------------------
-// --- 1. Mutation Argument Interfaces (Input Types)---
-// --------------------------------------------------
-
-interface CreateCurrencyArgs {
-  code: string;
-}
 
 // --------------------------------------------------
 // --- 2. Query Keys (Used for caching/refetching) ---
@@ -200,6 +196,25 @@ export function useCreateTransaction() {
         onSuccess: () => {
             // Refetch the list of transactions and any dashboard summaries
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TRANSACTIONS] }); 
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TRANSACTION_SUMMARY] }); 
+        },
+    });
+}
+
+// ✅ NEW: Mutation for creating an atomic money transfer
+export function useCreateTransfer() { 
+    const queryClient = useQueryClient();
+
+    return useMutation<null, Error, CreateTransferArgs>({
+        mutationFn: async (transferData) => {
+            const { error } = await ManagementRepository.createTransfer(transferData);
+            if (error) throw error;
+            return null; // RPC operations often return void/null
+        },
+        onSuccess: () => {
+            // Transfers create two transactions and change account balances. Invalidate both.
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TRANSACTIONS] }); 
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.ACCOUNTS] }); 
             queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.TRANSACTION_SUMMARY] }); 
         },
     });

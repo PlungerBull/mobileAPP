@@ -14,7 +14,8 @@ import {
   ServiceResponse,
   UpdateAccountArgs,
   UpdateCategoryArgs,
-  UpdateCurrencyArgs
+  UpdateCurrencyArgs,
+  CreateTransferArgs // 👈 NEW: Import for transfer method
 } from '@/types/ApiArgs';
 
 // Define local aliases for clarity (using canonical types)
@@ -23,7 +24,7 @@ type Category = CategoryRow;
 type Currency = CurrencyRow;
 type Transaction = TransactionRow;
 
-const dbClient = supabase; 
+const dbClient = supabase;
 
 export const ManagementRepository = {
   
@@ -163,6 +164,7 @@ export const ManagementRepository = {
         return { data: null, error: new Error('User not authenticated.') };
     }
 
+  
     const newTransaction = {
         user_id: userId,
         ...transactionData, 
@@ -179,6 +181,37 @@ export const ManagementRepository = {
         return { data: null, error: new Error('Failed to save new transaction.') };
     }
     return { data, error: null };
+  },
+
+  async createTransfer(transferData: CreateTransferArgs): Promise<ServiceResponse<null>> {
+    const { data: { user: dbUser } } = await dbClient.auth.getUser();
+    const userId = dbUser?.id;
+
+    if (!userId) {
+        return { data: null, error: new Error('User not authenticated.') };
+    }
+    
+    // Args for the Supabase RPC, including the user_id for RLS/security
+    const rpcArgs = {
+        _user_id: userId,
+        _date: transferData.date,
+        _description: transferData.description,
+        _amount: transferData.amount,
+        _from_account_id: transferData.from_account_id,
+        _to_account_id: transferData.to_account_id,
+        _category_id: transferData.category_id,
+        // The RPC function (create_transfer in SQL) will handle currency fetching, dual inserts, and atomicity.
+    };
+    
+    // Call the Supabase function (RPC) - required by the README for transfers
+    const { error } = await dbClient.rpc('create_transfer', rpcArgs);
+
+    if (error) {
+        console.error('ManagementRepository [createTransfer] Error:', error.message);
+        return { data: null, error: new Error('Failed to create transfer. Please check accounts/currencies.') };
+    }
+    
+    return { data: null, error: null };
   },
 
   /** Creates a new top-level Grouping (maps to a Category with parent_id: null). */

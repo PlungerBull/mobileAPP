@@ -14,13 +14,6 @@ export default function ModalsLayout() {
         }} 
       />
        <Stack.Screen 
-        name="manage-groupings" 
-        options={{ 
-          headerShown: false, 
-          presentation: 'modal', 
-        }} 
-      />
-       <Stack.Screen 
         name="manage-categories" 
         options={{ 
           headerShown: false, 

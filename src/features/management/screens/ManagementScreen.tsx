@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAccounts, useGroups, useCategories, useCurrencies } from '@/src/hooks/useManagementData';
+import { useAccounts, useCategories, useCurrencies } from '@/src/hooks/useManagementData';
 import {
   AccountRow as BankAccount,
   CategoryRow as Category,
@@ -110,14 +110,12 @@ const ManagementSection = ({
 
 export default function ManagementScreen() {
   const { data: accounts = [], isLoading: loadingAccounts, isError: errorAccounts } = useAccounts();
-  const { data: groups = [], isLoading: loadingGroups, isError: errorGroups } = useGroups();
   const { data: categories = [], isLoading: loadingCategories, isError: errorCategories } = useCategories();
   const { data: currencies = [], isLoading: loadingCurrencies, isError: errorCurrencies } = useCurrencies();
-  
-  const router = useRouter(); 
+
+  const router = useRouter();
 
   const handleManageAccounts = () => router.push('/manage-accounts');
-  const handleManageGroupings = () => router.push('/manage-groupings');
   const handleManageCategories = () => router.push('/manage-categories');
   const handleManageCurrencies = () => router.push('/manage-currencies');
 
@@ -125,23 +123,15 @@ export default function ManagementScreen() {
     <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.container}>
       <Text style={styles.mainTitle}>Management</Text>
 
-      <ManagementSection 
+      <ManagementSection
         title="BANK ACCOUNTS"
         data={accounts as ManagementEntity[]}
         isLoading={loadingAccounts}
         isError={errorAccounts}
         onActionPress={handleManageAccounts}
       />
-      
-      <ManagementSection 
-        title="GROUPINGS"
-        data={groups as ManagementEntity[]}
-        isLoading={loadingGroups}
-        isError={errorGroups}
-        onActionPress={handleManageGroupings}
-      />
 
-      <ManagementSection 
+      <ManagementSection
         title="CATEGORIES"
         data={categories as ManagementEntity[]}
         isLoading={loadingCategories}

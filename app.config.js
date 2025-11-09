@@ -62,7 +62,7 @@ export default {
     ],
     experiments: {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     },
     extra: {
       // These are your Supabase keys

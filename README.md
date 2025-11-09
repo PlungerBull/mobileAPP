@@ -12,11 +12,11 @@ This is a personal finance mobile app built with React Native and Supabase. It a
 * **Backend:** Supabase (for Auth, Database, and API)
 * **Database:** Supabase (PostgreSQL)
 ## **4. Key Libraries**
-* **Routing:** Expo Router (file-based)
-* **UI:** **UI Kitten**. It is built on the flexible Eva Design System, which perfectly aligns with our "Core Philosophy" of a custom, minimalist, and warm vibe.
-* **Server State:** TanStack Query (v5) (for all data fetching/caching from Supabase)
-* **Client State:** Zustand (for simple global state like UI toggles)
-* **Forms:** React Hook Form (for all user input)
+- **Routing:** Expo Router (file-based)
+- **UI:** **React Native Paper**. A production-ready component library following Material Design 3 principles with excellent theming capabilities, perfect for achieving our minimalist, warm aesthetic while being actively maintained and fully compatible with Expo and TypeScript.
+- **Server State:** TanStack Query (v5) (for all data fetching/caching from Supabase)
+- **Client State:** Zustand (for simple global state like UI toggles)
+- **Forms:** React Hook Form (for all user input)
 ## **5. Coding Standards**
 *  **File Structure:** We use a **hybrid structure** to get the benefits of Expo Router (file-based routes) and feature-based modularity.
 	- **/app/**: This directory is for **ROUTES ONLY**. It mirrors the URL structure of the app. Files here should be "thin" and import their logic from `/src/`.

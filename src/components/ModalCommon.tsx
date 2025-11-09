@@ -1,110 +1,101 @@
 import React, { ReactNode } from 'react';
-import { 
-  StyleSheet, 
-  View, 
-  ViewStyle, 
+import {
+  StyleSheet,
+  View,
+  ViewStyle,
+  Text as RNText,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Picker, PickerProps } from '@react-native-picker/picker';
-import { 
-  Button, 
-  Input, 
-  Icon, 
-  Spinner,
+import { Ionicons } from '@expo/vector-icons';
+import {
+  Button,
+  TextInput,
+  ActivityIndicator,
   Text,
-  InputProps,   // 👈 We will base our CustomInput on this
-  ButtonProps 
-} from '@ui-kitten/components'; 
+  TextInputProps,
+  ButtonProps as PaperButtonProps,
+} from 'react-native-paper'; 
 
 // --- SHARED COMPONENTS ---
 
-// Helper component for the Button's loading spinner
-const LoadingIndicator = (props: any): React.ReactElement => (
-  <View {...props} style={[props.style, modalStyles.loadingIndicator]}>
-    <Spinner size='small' status='control' />
-  </View>
-);
-
-// --- 1. PrimaryButton (Corrected) ---
-// Uses UI Kitten's ButtonProps for perfect type compatibility.
+// --- 1. PrimaryButton ---
 interface PrimaryButtonOwnProps {
     title: string;
     isLoading?: boolean;
+    onPress?: () => void;
+    disabled?: boolean;
+    style?: any;
 }
-type PrimaryButtonProps = PrimaryButtonOwnProps & ButtonProps;
 
-export const PrimaryButton = ({ 
-  title, 
-  isLoading = false, 
-  style, 
-  ...buttonProps 
-}: PrimaryButtonProps) => (
+export const PrimaryButton = ({
+  title,
+  isLoading = false,
+  style,
+  onPress,
+  disabled,
+}: PrimaryButtonOwnProps) => (
   <Button
+    mode="contained"
+    onPress={onPress}
+    disabled={isLoading || disabled}
+    loading={isLoading}
     style={[modalStyles.button, style]}
-    disabled={isLoading || buttonProps.disabled}
-    accessoryLeft={isLoading ? LoadingIndicator : undefined}
-    {...buttonProps}
   >
     {title}
   </Button>
 );
 
-// --- 2. CustomInput (Final Corrected Version) ---
-// This version is compatible with both UI Kitten and React Hook Form.
-
-// 1. Get all props from UI Kitten's Input, but OMIT 'onBlur'
-//    because its type conflicts with React Hook Form.
-type CustomInputUIProps = Omit<InputProps, 'onBlur'>;
-
-interface CustomInputOwnProps { 
-  label: string; 
-  errorText?: string; 
+// --- 2. CustomInput ---
+interface CustomInputOwnProps {
+  label: string;
+  errorText?: string;
   containerStyle?: ViewStyle;
-  
-  // 2. Explicitly add 'onBlur' with the type React Hook Form provides
-  onBlur?: () => void; 
+  onBlur?: () => void;
+  value?: string;
+  onChangeText?: (text: string) => void;
+  placeholder?: string;
+  secureTextEntry?: boolean;
+  keyboardType?: any;
+  autoCapitalize?: any;
+  style?: any;
 }
 
-// 3. Our final props are the (modified) UI Kitten props + our own
-type CustomInputProps = CustomInputOwnProps & CustomInputUIProps;
-
-export const CustomInput = ({ 
-  label, 
-  errorText, 
+export const CustomInput = ({
+  label,
+  errorText,
   containerStyle,
-  style, // This 'style' is TextStyle from InputProps
-  ...inputProps // All other compatible props
-}: CustomInputProps) => (
+  style,
+  ...inputProps
+}: CustomInputOwnProps) => (
   <View style={containerStyle}>
-    <Input
-      style={[modalStyles.input, style]} 
+    <TextInput
       label={label}
-      caption={errorText}
-      status={errorText ? 'danger' : 'basic'}
-      {...inputProps} // Pass all other props (value, onChangeText, autoCapitalize, etc.)
+      error={!!errorText}
+      mode="outlined"
+      style={[modalStyles.input, style]}
+      {...inputProps}
     />
+    {errorText && <Text style={modalStyles.errorText}>{errorText}</Text>}
   </View>
 );
 
 
-// --- 3. CloseButton (Unchanged) ---
-const CloseIcon = (props: any) => (
-  <Icon {...props} name='close-outline' />
-);
-
+// --- 3. CloseButton ---
 export const CloseButton = () => {
     const router = useRouter();
     return (
-        <Button
-          appearance='ghost'
-          status='basic'
-          accessoryLeft={CloseIcon}
+        <Ionicons
+          name='close'
+          size={28}
+          color='#000'
           onPress={() => router.back()}
+          style={{ padding: 8 }}
         />
     );
 }
 
-// --- 4. CustomPicker (Unchanged) ---
+// --- 4. CustomPicker ---
 interface CustomPickerProps extends PickerProps {
   label: string;
   errorText?: string;
@@ -112,7 +103,7 @@ interface CustomPickerProps extends PickerProps {
 }
 export const CustomPicker = ({ label, errorText, children, ...props }: CustomPickerProps) => (
   <View style={modalStyles.input}>
-    <Text category='label' style={modalStyles.inputLabel}>{label}</Text>
+    <RNText style={modalStyles.inputLabel}>{label}</RNText>
     <View style={[modalStyles.pickerWrapper, errorText && modalStyles.pickerError]}>
       <Picker
         style={modalStyles.picker}
@@ -121,7 +112,7 @@ export const CustomPicker = ({ label, errorText, children, ...props }: CustomPic
         {children}
       </Picker>
     </View>
-    {errorText && <Text category='c1' status='danger' style={modalStyles.errorText}>{errorText}</Text>} 
+    {errorText && <RNText style={[modalStyles.errorText, { color: '#d32f2f' }]}>{errorText}</RNText>}
   </View>
 );
 

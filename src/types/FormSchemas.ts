@@ -30,15 +30,8 @@ export type AddAccountFormValues = z.infer<typeof AddAccountSchema>;
 // For the 'Add New' form in manage-categories.tsx
 export const AddCategorySchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  parentId: z.string(), // 'None' or a UUID
 });
 export type AddCategoryFormValues = z.infer<typeof AddCategorySchema>;
-
-// For the 'Add New' form in manage-groupings.tsx
-export const AddGroupingSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-});
-export type AddGroupingFormValues = z.infer<typeof AddGroupingSchema>;
 
 // For the 'Add New Currency' form in manage-currencies.tsx
 export const AddCurrencySchema = z.object({

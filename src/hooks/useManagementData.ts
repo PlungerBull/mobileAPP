@@ -135,22 +135,6 @@ export function useCreateAccount() {
         },
     });
 }
-  
-export function useCreateGrouping() {
-    const queryClient = useQueryClient();
-  
-    return useMutation<Category | null, Error, string>({
-        mutationFn: async (name) => {
-            const result = await ManagementRepository.createGrouping(name);
-            if (result.error) throw result.error;
-            return result.data;
-        },
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.GROUPS] });
-            queryClient.invalidateQueries({ queryKey: [QUERY_KEYS.CATEGORIES_AND_GROUPS] });
-        },
-    });
-}
 
 export function useCreateCategory() {
     const queryClient = useQueryClient();

@@ -214,35 +214,6 @@ export const ManagementRepository = {
     return { data: null, error: null };
   },
 
-  /** Creates a new top-level Grouping (maps to a Category with parent_id: null). */
-  async createGrouping(name: string): Promise<ServiceResponse<Category | null>> {
-    const { data: { user: dbUser } } = await dbClient.auth.getUser();
-    const userId = dbUser?.id;
-    
-    if (!userId) {
-        return { data: null, error: new Error('User not authenticated.') };
-    }
-    
-    const newGrouping = {
-        user_id: userId,
-        name: name,
-        parent_id: null, // Always null for a grouping
-    }
-    
-    const { data, error } = await dbClient
-        .from('categories') 
-        .insert(newGrouping)
-        .select()
-        .single();
-
-    if (error) {
-        console.error('ManagementRepository [createGrouping] Error:', error.message);
-        return { data: null, error: new Error('Failed to create grouping.') };
-    }
-
-    return { data, error: null };
-  },
-
   /** Creates a new sub-category or group. */
   async createCategory(name: string, parentId?: string | null): Promise<ServiceResponse<Category | null>> {
     const { data: { user: dbUser } } = await dbClient.auth.getUser();

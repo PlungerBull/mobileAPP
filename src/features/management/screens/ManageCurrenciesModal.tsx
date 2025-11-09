@@ -162,15 +162,25 @@ export default function ManageCurrenciesModal() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          title: 'Manage Currencies',
+          headerLeft: () => (
+            <Pressable onPress={() => router.back()} hitSlop={10}>
+              <Ionicons name="chevron-back" size={28} color="#000" />
+            </Pressable>
+          ),
+          headerRight: () => <View />,
+        }}
+      />
 
       {/* Currencies List */}
       <ScrollView style={styles.listContainer} contentContainerStyle={styles.listContent}>
         {isLoading ? (
           <ActivityIndicator size="large" color="#f39c12" style={styles.loader} />
         ) : currencies.length === 0 ? (
-          <Text style={styles.emptyText}>
-            No currencies yet
-          </Text>
+          <Text style={styles.emptyText}>No currencies yet</Text>
         ) : (
           currencies.map((currency) => (
             <CurrencyItem
@@ -216,30 +226,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-  },
-  searchInput: {
-    flex: 1,
-    height: 48,
-    borderWidth: 2,
-    borderColor: '#1a1a1a',
-    borderRadius: 8,
-    paddingHorizontal: 15,
-    fontSize: 16,
-  },
-  cancelButton: {
-    marginLeft: 10,
-  },
-  cancelText: {
-    fontSize: 16,
-    color: '#666',
   },
   listContainer: {
     flex: 1,

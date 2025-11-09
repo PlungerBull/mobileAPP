@@ -4,22 +4,25 @@ import {
   Text, 
   ScrollView, 
   Alert, 
-  ActivityIndicator
+  ActivityIndicator,
+  StyleSheet,
+  Pressable,
+  TextInput,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Ionicons } from '@expo/vector-icons';
 import { AddTransactionSchema, AddTransactionFormValues } from '@/src/types/FormSchemas';
 
 import {
   useCreateTransaction,
   useAccounts,
   useCategoriesAndGroups,
-  useMainCurrency // ✅ NEW: Import the main currency hook
+  useMainCurrency
 } from '@/src/hooks/useManagementData';
 
-import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/src/components/ModalCommon';
 import { NewTransaction, CategoryRow as Category } from '@/src/types/supabase';
 
 export default function AddTransactionModal() {
@@ -28,7 +31,7 @@ export default function AddTransactionModal() {
   // --- Data Fetching ---
   const { data: accounts = [], isLoading: loadingAccounts } = useAccounts();
   const { data: allCategories = [], isLoading: loadingCategories } = useCategoriesAndGroups();
-  const { data: mainCurrency, isLoading: loadingMainCurrency } = useMainCurrency(); // ✅ NEW
+  const { data: mainCurrency, isLoading: loadingMainCurrency } = useMainCurrency();
 
   // --- Mutation ---
   const { mutate: createTransaction, isPending: isCreating } = useCreateTransaction();
@@ -45,15 +48,15 @@ export default function AddTransactionModal() {
       amount: '',
       accountId: undefined,
       categoryId: undefined,
-      exchangeRate: '', // ✅ NEW: Default to empty string
+      exchangeRate: '',
     }
   });
 
-  // ✅ NEW: Watch the selected account to determine if we need the exchange rate field
+  // Watch the selected account to determine if we need the exchange rate field
   const selectedAccountId = useWatch({ control, name: 'accountId' });
   const selectedAccount = accounts.find(a => a.id === selectedAccountId);
   
-  // ✅ NEW: Determine if exchange rate is needed
+  // Determine if exchange rate is needed
   const needsExchangeRate = mainCurrency && selectedAccount 
     ? selectedAccount.currency !== mainCurrency.code 
     : false;
@@ -92,12 +95,10 @@ export default function AddTransactionModal() {
       return;
     }
     
-    // ✅ FIXED: Proper exchange rate handling
     let exchangeRate = 1;
     let amountHome = parsedAmount;
     
     if (needsExchangeRate) {
-      // If currencies differ, exchange rate is REQUIRED
       if (!data.exchangeRate || data.exchangeRate.trim() === '') {
         Alert.alert('Error', 'Exchange rate is required for different currencies.');
         return;
@@ -109,10 +110,10 @@ export default function AddTransactionModal() {
     const transactionData: NewTransaction = {
       date: new Date().toISOString(),
       description: data.description.trim(),
-      amount_home: amountHome, // ✅ FIXED: Calculated correctly
+      amount_home: amountHome,
       amount_original: parsedAmount,
       currency_original: selectedAccount.currency,
-      exchange_rate: exchangeRate, // ✅ FIXED: User-provided or 1
+      exchange_rate: exchangeRate,
       account_id: data.accountId,
       category_id: data.categoryId,
     };
@@ -124,112 +125,302 @@ export default function AddTransactionModal() {
   };
 
   return (
-    <View style={modalStyles.safeArea}>
+    <View style={styles.container}>
+      <Stack.Screen 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
       
-      <ScrollView contentContainerStyle={modalStyles.container}>
+      {/* Custom Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Add Transaction</Text>
+        <Pressable 
+          onPress={() => router.back()} 
+          hitSlop={10}
+          style={styles.closeButton}
+        >
+          <Ionicons name="close" size={28} color="#000" />
+        </Pressable>
+      </View>
+
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
         {isLoading ? (
-          <ActivityIndicator size="large" color="#e63946" />
+          <ActivityIndicator size="large" color="#f39c12" style={styles.loader} />
         ) : (
           <>
-            <Controller
-              control={control}
-              name="description"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <CustomInput 
-                  label="Description"
-                  placeholder="e.g. Coffee"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  autoCapitalize="sentences"
-                  errorText={errors.description?.message}
-                />
+            {/* Amount */}
+            <View style={styles.fieldContainer}>
+              <Controller
+                control={control}
+                name="amount"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[styles.input, errors.amount && styles.inputError]}
+                    placeholder="Amount"
+                    placeholderTextColor="#999"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    keyboardType="decimal-pad"
+                  />
+                )}
+              />
+              {errors.amount && (
+                <Text style={styles.errorText}>{errors.amount.message}</Text>
               )}
-            />
-            
-            <Controller
-              control={control}
-              name="amount"
-              render={({ field: { onChange, onBlur, value } }) => (
-                <CustomInput 
-                  label="Amount"
-                  placeholder="0.00"
-                  value={value}
-                  onChangeText={onChange}
-                  onBlur={onBlur}
-                  keyboardType="numeric"
-                  errorText={errors.amount?.message}
-                />
-              )}
-            />
+            </View>
 
-            <Controller
-              control={control}
-              name="accountId"
-              render={({ field: { onChange, value } }) => (
-                <CustomPicker
-                  label="Account"
-                  selectedValue={value} 
-                  onValueChange={onChange}
-                  errorText={errors.accountId?.message}
-                >
-                  <Picker.Item label="Select an account..." value={undefined} /> 
-                  {accounts.map(account => (
-                    <Picker.Item key={account.id} label={`${account.name} (${account.currency})`} value={account.id} />
-                  ))}
-                </CustomPicker>
-              )}
-            />
+            {/* Date (Currently shows today's date - you can make this editable later) */}
+            <View style={styles.fieldContainer}>
+              <View style={styles.dateContainer}>
+                <Text style={styles.dateText}>
+                  {new Date().toLocaleDateString('en-US', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    year: 'numeric' 
+                  })}
+                </Text>
+                <Ionicons name="calendar-outline" size={20} color="#666" />
+              </View>
+            </View>
 
-            {/* ✅ NEW: Conditionally show exchange rate field */}
+            {/* Description */}
+            <View style={styles.fieldContainer}>
+              <Controller
+                control={control}
+                name="description"
+                render={({ field: { onChange, onBlur, value } }) => (
+                  <TextInput
+                    style={[styles.input, errors.description && styles.inputError]}
+                    placeholder="Description"
+                    placeholderTextColor="#999"
+                    value={value}
+                    onChangeText={onChange}
+                    onBlur={onBlur}
+                    autoCapitalize="sentences"
+                  />
+                )}
+              />
+              {errors.description && (
+                <Text style={styles.errorText}>{errors.description.message}</Text>
+              )}
+            </View>
+
+            {/* Note (Optional) - Placeholder for future feature */}
+            <View style={styles.fieldContainer}>
+              <TextInput
+                style={styles.input}
+                placeholder="Note (Optional)"
+                placeholderTextColor="#999"
+                editable={false}
+              />
+            </View>
+
+            {/* Category Picker */}
+            <View style={styles.fieldContainer}>
+              <Controller
+                control={control}
+                name="categoryId"
+                render={({ field: { onChange, value } }) => (
+                  <View style={[styles.pickerContainer, errors.categoryId && styles.inputError]}>
+                    <Picker
+                      selectedValue={value}
+                      onValueChange={onChange}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="Select category..." value={undefined} color="#999" />
+                      {categoryPickerItems}
+                    </Picker>
+                  </View>
+                )}
+              />
+              {errors.categoryId && (
+                <Text style={styles.errorText}>{errors.categoryId.message}</Text>
+              )}
+            </View>
+
+            {/* Account Picker */}
+            <View style={styles.fieldContainer}>
+              <Controller
+                control={control}
+                name="accountId"
+                render={({ field: { onChange, value } }) => (
+                  <View style={[styles.pickerContainer, errors.accountId && styles.inputError]}>
+                    <Picker
+                      selectedValue={value}
+                      onValueChange={onChange}
+                      style={styles.picker}
+                    >
+                      <Picker.Item label="Select account..." value={undefined} color="#999" />
+                      {accounts.map(account => (
+                        <Picker.Item 
+                          key={account.id} 
+                          label={`${account.name}`} 
+                          value={account.id} 
+                        />
+                      ))}
+                    </Picker>
+                  </View>
+                )}
+              />
+              {errors.accountId && (
+                <Text style={styles.errorText}>{errors.accountId.message}</Text>
+              )}
+            </View>
+
+            {/* Exchange Rate (conditional) */}
             {needsExchangeRate && (
-              <View>
-                <Text style={{ fontSize: 12, color: '#666', marginBottom: 10 }}>
+              <View style={styles.fieldContainer}>
+                <Text style={styles.helperText}>
                   Converting from {selectedAccount?.currency} to {mainCurrency?.code}
                 </Text>
                 <Controller
                   control={control}
                   name="exchangeRate"
                   render={({ field: { onChange, onBlur, value } }) => (
-                    <CustomInput 
-                      label={`Exchange Rate (${selectedAccount?.currency} to ${mainCurrency?.code})`}
-                      placeholder="e.g. 1.25"
+                    <TextInput
+                      style={[styles.input, errors.exchangeRate && styles.inputError]}
+                      placeholder={`Exchange Rate (${selectedAccount?.currency} to ${mainCurrency?.code})`}
+                      placeholderTextColor="#999"
                       value={value || ''}
                       onChangeText={onChange}
                       onBlur={onBlur}
                       keyboardType="decimal-pad"
-                      errorText={errors.exchangeRate?.message}
                     />
                   )}
                 />
+                {errors.exchangeRate && (
+                  <Text style={styles.errorText}>{errors.exchangeRate.message}</Text>
+                )}
               </View>
             )}
 
-            <Controller
-              control={control}
-              name="categoryId"
-              render={({ field: { onChange, value } }) => (
-                <CustomPicker
-                  label="Category"
-                  selectedValue={value} 
-                  onValueChange={onChange}
-                  errorText={errors.categoryId?.message}
-                >
-                  <Picker.Item label="Select a category..." value={undefined} /> 
-                  {categoryPickerItems}
-                </CustomPicker>
-              )}
-            />
-
-            <PrimaryButton 
-              title={isCreating ? 'Saving...' : 'Save Transaction'}
+            {/* Save Button */}
+            <Pressable
+              style={[styles.saveButton, isCreating && styles.saveButtonDisabled]}
               onPress={handleSubmit(handleSaveTransaction)}
               disabled={isCreating}
-              style={{ marginTop: 20 }}
-            />
+            >
+              {isCreating ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.saveButtonText}>Save</Text>
+              )}
+            </Pressable>
           </>
         )}
       </ScrollView>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#000',
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    top: 60,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 40,
+  },
+  loader: {
+    marginTop: 40,
+  },
+  fieldContainer: {
+    marginBottom: 16,
+  },
+  input: {
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: '#fff',
+    color: '#000',
+  },
+  inputError: {
+    borderColor: '#e63946',
+  },
+  dateContainer: {
+    height: 56,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#fff',
+  },
+  dateText: {
+    fontSize: 16,
+    color: '#000',
+  },
+  pickerContainer: {
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+  },
+  picker: {
+    height: 56,
+  },
+  helperText: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#e63946',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  saveButton: {
+    height: 56,
+    backgroundColor: '#f39c12',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
+  },
+  saveButtonText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#fff',
+  },
+});

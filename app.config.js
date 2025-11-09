@@ -11,7 +11,7 @@ export default {
     main: "expo-router/entry",
     scheme: "mobileios",
     orientation: "portrait",
-    //icon: "./assets/images/icon.png",
+    icon: "./assets/images/icon.png",
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     
@@ -20,7 +20,10 @@ export default {
     // ---
     ios: {
       supportsTablet: true,
-      bundleIdentifier: myBundleIdentifier // 👈 THE MISSING FIELD
+      bundleIdentifier: myBundleIdentifier, // 👈 THE MISSING FIELD
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false
+      }
     },
     
     // ---

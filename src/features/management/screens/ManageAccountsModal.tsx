@@ -3,14 +3,14 @@ import {
   View, Alert, ActivityIndicator, ScrollView, Text,
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useAccounts, useCreateAccount, useDeleteAccount } from '@/hooks/useManagementData';
+import { useAccounts, useCreateAccount, useDeleteAccount } from '@/src/hooks/useManagementData';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AddAccountSchema, AddAccountFormValues } from '@/types/FormSchemas';
+import { AddAccountSchema, AddAccountFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
-import { AccountRow } from '@/components/list-items/AccountRow';
+import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/src/components/ModalCommon';
+import { AccountRow } from '@/src/components/list-items/AccountRow';
 
 export default function ManageAccountsModal() {
   const router = useRouter();

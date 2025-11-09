@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/src/lib/supabase';
 import { Session, User } from '@supabase/supabase-js'; // 👈 Import specific types
 
 // Define the shape of the core data returned from successful auth operations

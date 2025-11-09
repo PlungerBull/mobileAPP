@@ -1,7 +1,7 @@
 import React, { useEffect, ReactNode } from 'react';
 import { create } from 'zustand';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/src/lib/supabase';
 
 interface AuthContextType {
   session: Session | null;

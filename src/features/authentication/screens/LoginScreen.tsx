@@ -15,9 +15,9 @@ import { Link } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form'; 
 import { zodResolver } from '@hookform/resolvers/zod'; 
 
-import { AuthService } from '@/services/AuthService'; 
-import { CustomInput } from '@/components/ModalCommon';
-import { LoginSchema, LoginFormValues } from '@/types/FormSchemas';
+import { AuthService } from '@/src/services/AuthService';
+import { CustomInput } from '@/src/components/ModalCommon';
+import { LoginSchema, LoginFormValues } from '@/src/types/FormSchemas';
 
 export default function LoginScreen() {
   const { 

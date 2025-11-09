@@ -1,6 +1,6 @@
 import { Stack, useRouter } from 'expo-router'; // 👈 Import useRouter
 import React, { useEffect } from 'react'; // 👈 Import useEffect
-import { useAuth } from '@/context/AuthContext'; // 👈 Import our hook
+import { useAuth } from '@/src/context/AuthContext'; // 👈 Import our hook
 import { Text, View } from 'react-native'; // 👈 Import for loading indicator
 
 export default function AuthLayout() {

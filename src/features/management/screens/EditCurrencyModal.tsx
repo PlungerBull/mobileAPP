@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useUpdateCurrency } from '@/hooks/useManagementData'; 
-import { CurrencyRow as Currency } from '@/types/supabase';
+import { useUpdateCurrency } from '@/src/hooks/useManagementData';
+import { CurrencyRow as Currency } from '@/src/types/supabase';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { EditCurrencySchema, EditCurrencyFormValues } from '@/types/FormSchemas';
+import { EditCurrencySchema, EditCurrencyFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
+import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/src/components/ModalCommon';
 
 export default function EditCurrencyModal() {
   const router = useRouter();

@@ -1,16 +1,16 @@
 // hooks/useManagementData.ts
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ManagementRepository } from '@/services/ManagementRepository'; 
+import { ManagementRepository } from '@/src/services/ManagementRepository';
 
 // ✅ Import core DB types from the canonical source
-import { 
+import {
     AccountRow, CategoryRow, CurrencyRow, TransactionRow, NewTransaction
-} from '@/types/supabase';
+} from '@/src/types/supabase';
 // ✅ FIXED & NEW: Import all argument types from the canonical file
-import { 
-    ServiceResponse, 
-    CreateAccountArgs, 
+import {
+    ServiceResponse,
+    CreateAccountArgs,
     CreateCategoryArgs,
     CreateCurrencyArgs, // 👈 ADDED HERE (Now consistent)
     CreateTransferArgs, // 👈 NEW: Argument type for transfer mutation
@@ -20,7 +20,7 @@ import {
     UpdateAccountArgs,
     UpdateCategoryArgs,
     UpdateCurrencyArgs
-} from '@/types/ApiArgs';
+} from '@/src/types/ApiArgs';
 
 // Define local aliases for clarity
 type BankAccount = AccountRow;

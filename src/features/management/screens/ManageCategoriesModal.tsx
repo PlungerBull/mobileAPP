@@ -3,17 +3,17 @@ import {
   View, Text, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { 
-  useGroups, useCategories, useCreateCategory, useDeleteCategory 
-} from '@/hooks/useManagementData'; 
+import {
+  useGroups, useCategories, useCreateCategory, useDeleteCategory
+} from '@/src/hooks/useManagementData';
 import { Picker } from '@react-native-picker/picker';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AddCategorySchema, AddCategoryFormValues } from '@/types/FormSchemas';
+import { AddCategorySchema, AddCategoryFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/components/ModalCommon';
-import { CategoryRow } from '@/components/list-items/CategoryRow';
+import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/src/components/ModalCommon';
+import { CategoryRow } from '@/src/components/list-items/CategoryRow';
 
 export default function ManageCategoriesModal() {
   const router = useRouter();

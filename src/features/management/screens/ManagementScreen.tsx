@@ -2,12 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useAccounts, useGroups, useCategories, useCurrencies } from '@/hooks/useManagementData'; 
-import { 
-  AccountRow as BankAccount, 
-  CategoryRow as Category, 
-  CurrencyRow as Currency 
-} from '@/types/supabase'; 
+import { useAccounts, useGroups, useCategories, useCurrencies } from '@/src/hooks/useManagementData';
+import {
+  AccountRow as BankAccount,
+  CategoryRow as Category,
+  CurrencyRow as Currency
+} from '@/src/types/supabase'; 
 
 interface SectionActionProps {
   onPress: () => void;

@@ -11,12 +11,12 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { AuthService } from '@/services/AuthService';
+import { AuthService } from '@/src/services/AuthService';
 
-import { useForm, Controller } from 'react-hook-form'; 
-import { zodResolver } from '@hookform/resolvers/zod'; 
-import { SignUpSchema, SignUpFormValues } from '@/types/FormSchemas'; 
-import { CustomInput } from '@/components/ModalCommon';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { SignUpSchema, SignUpFormValues } from '@/src/types/FormSchemas';
+import { CustomInput } from '@/src/components/ModalCommon';
 
 export default function SignUpScreen() {
   const router = useRouter();

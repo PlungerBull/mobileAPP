@@ -3,14 +3,14 @@ import {
   View, Text, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { useGroups, useCreateGrouping, useDeleteCategory } from '@/hooks/useManagementData'; 
+import { useGroups, useCreateGrouping, useDeleteCategory } from '@/src/hooks/useManagementData';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AddGroupingSchema, AddGroupingFormValues } from '@/types/FormSchemas';
+import { AddGroupingSchema, AddGroupingFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
-import { CategoryRow } from '@/components/list-items/CategoryRow';
+import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/src/components/ModalCommon';
+import { CategoryRow } from '@/src/components/list-items/CategoryRow';
 
 
 export default function ManageGroupingsModal() {

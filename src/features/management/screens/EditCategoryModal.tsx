@@ -1,15 +1,15 @@
 import React from 'react';
 import { View, Text, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useUpdateCategory, useGroups } from '@/hooks/useManagementData'; 
-import { CategoryRow as Category } from '@/types/supabase';
+import { useUpdateCategory, useGroups } from '@/src/hooks/useManagementData';
+import { CategoryRow as Category } from '@/src/types/supabase';
 import { Picker } from '@react-native-picker/picker';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { EditCategorySchema, EditCategoryFormValues } from '@/types/FormSchemas';
+import { EditCategorySchema, EditCategoryFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/components/ModalCommon';
+import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/src/components/ModalCommon';
 
 export default function EditCategoryModal() {
   const router = useRouter();

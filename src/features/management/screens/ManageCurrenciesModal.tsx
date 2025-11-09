@@ -3,16 +3,16 @@ import {
   View, Text, ScrollView, Alert, ActivityIndicator
 } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
-import { 
+import {
   useCurrencies, useCreateCurrency, useDeleteCurrency, useSetMainCurrency
-} from '@/hooks/useManagementData'; 
+} from '@/src/hooks/useManagementData';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AddCurrencySchema, AddCurrencyFormValues } from '@/types/FormSchemas';
+import { AddCurrencySchema, AddCurrencyFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
-import { CurrencyRow } from '@/components/list-items/CurrencyRow';
+import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/src/components/ModalCommon';
+import { CurrencyRow } from '@/src/components/list-items/CurrencyRow';
 
 export default function ManageCurrenciesModal() {
   const router = useRouter();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Button } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AuthService } from '@/services/AuthService';
+import { AuthService } from '@/src/services/AuthService';
 
 export default function ReportScreen() {
   const router = useRouter();

@@ -1,9 +1,9 @@
 // types/ApiArgs.ts
-import { 
-  AccountRow, 
-  CategoryRow, 
-  CurrencyRow 
-} from '@/types/supabase'; 
+import {
+  AccountRow,
+  CategoryRow,
+  CurrencyRow
+} from '@/src/types/supabase'; 
 
 // --- API Argument Interfaces (Inputs ONLY) ---
 export interface CreateCategoryArgs {

@@ -1,14 +1,14 @@
 import React from 'react';
 import { View, ScrollView, Alert } from 'react-native';
 import { Stack, useRouter, useLocalSearchParams } from 'expo-router';
-import { useUpdateAccount } from '@/hooks/useManagementData'; 
-import { AccountRow as BankAccount } from '@/types/supabase';
+import { useUpdateAccount } from '@/src/hooks/useManagementData';
+import { AccountRow as BankAccount } from '@/src/types/supabase';
 
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { EditAccountSchema, EditAccountFormValues } from '@/types/FormSchemas';
+import { EditAccountSchema, EditAccountFormValues } from '@/src/types/FormSchemas';
 
-import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/components/ModalCommon';
+import { PrimaryButton, CustomInput, CloseButton, modalStyles } from '@/src/components/ModalCommon';
 
 export default function EditAccountModal() {
   const router = useRouter();

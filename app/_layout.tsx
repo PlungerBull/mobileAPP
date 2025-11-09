@@ -1,4 +1,4 @@
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from '@/src/context/AuthContext';
 import { Slot } from 'expo-router';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

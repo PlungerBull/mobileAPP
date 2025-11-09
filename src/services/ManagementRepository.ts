@@ -1,22 +1,22 @@
 // services/ManagementRepository.ts
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/src/lib/supabase';
 // ✅ Import all canonical Row/Insert types from the database schema
-import { 
-  AccountRow, 
-  CategoryRow, 
-  CurrencyRow, 
+import {
+  AccountRow,
+  CategoryRow,
+  CurrencyRow,
   TransactionRow,
-  NewTransaction as NewTransactionInsert 
-} from '@/types/supabase';
+  NewTransaction as NewTransactionInsert
+} from '@/src/types/supabase';
 // ✅ Import argument types and the ServiceResponse utility type
-import { 
+import {
   ServiceResponse,
   UpdateAccountArgs,
   UpdateCategoryArgs,
   UpdateCurrencyArgs,
   CreateTransferArgs // 👈 NEW: Import for transfer method
-} from '@/types/ApiArgs';
+} from '@/src/types/ApiArgs';
 
 // Define local aliases for clarity (using canonical types)
 type BankAccount = AccountRow;

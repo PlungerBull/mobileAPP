@@ -1,8 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { modalStyles } from '@/components/ModalCommon';
-import { CurrencyRow as Currency } from '@/types/supabase';
+import { modalStyles } from '@/src/components/ModalCommon';
+import { CurrencyRow as Currency } from '@/src/types/supabase';
 
 interface CurrencyRowProps {
     currency: Currency;

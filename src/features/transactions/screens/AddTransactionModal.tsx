@@ -10,17 +10,17 @@ import { Stack, useRouter } from 'expo-router';
 import { Picker } from '@react-native-picker/picker';
 import { useForm, Controller, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AddTransactionSchema, AddTransactionFormValues } from '@/types/FormSchemas';
+import { AddTransactionSchema, AddTransactionFormValues } from '@/src/types/FormSchemas';
 
-import { 
-  useCreateTransaction, 
-  useAccounts, 
+import {
+  useCreateTransaction,
+  useAccounts,
   useCategoriesAndGroups,
   useMainCurrency // ✅ NEW: Import the main currency hook
-} from '@/hooks/useManagementData'; 
+} from '@/src/hooks/useManagementData';
 
-import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/components/ModalCommon';
-import { NewTransaction, CategoryRow as Category } from '@/types/supabase';
+import { PrimaryButton, CustomInput, CloseButton, CustomPicker, modalStyles } from '@/src/components/ModalCommon';
+import { NewTransaction, CategoryRow as Category } from '@/src/types/supabase';
 
 export default function AddTransactionModal() {
   const router = useRouter();

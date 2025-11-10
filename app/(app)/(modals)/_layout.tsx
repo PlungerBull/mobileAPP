@@ -1,6 +1,5 @@
 import { Stack } from 'expo-router';
 
-// This Stack defines how the screens in the (modals) group should be presented.
 export default function ModalsLayout() {
   return (
     <Stack
@@ -32,8 +31,9 @@ export default function ModalsLayout() {
       <Stack.Screen
         name="add-transaction"
         options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
+          presentation: 'transparentModal',
+          animation: 'fade',
+          headerShown: false,
         }}
       />
     </Stack>
